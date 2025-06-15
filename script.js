@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
     const addCategoryBtn = document.getElementById('add-category-btn');
+    const saveBtn = document.getElementById('save-btn');
+    const loadBtn = document.getElementById('load-btn');
+    const loadFileInput = document.getElementById('load-file-input');
     const cardWrapper = document.getElementById('character-card-wrapper');
     const formTitle = document.getElementById('form-title');
 
@@ -36,11 +39,14 @@ document.addEventListener('DOMContentLoaded', () => {
         prevBtn.addEventListener('click', () => navigate(-1));
         nextBtn.addEventListener('click', () => navigate(1));
         addCategoryBtn.addEventListener('click', addCategoryAndNavigate);
+        saveBtn.addEventListener('click', saveDataToJson);
+        loadBtn.addEventListener('click', () => loadFileInput.click());
+        loadFileInput.addEventListener('change', loadDataFromJson);
         form.addEventListener('input', handleFormInput);
         form.addEventListener('click', handleFormClick);
         downloadBtn.addEventListener('click', downloadCard);
 
-        loadExampleData();
+        loadExampleData(); // Or load from local storage if implemented later
         rebuildCategoryPages();
         showPage(0);
         updateUI(); 
@@ -147,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         prevBtn.disabled = index === 0;
         nextBtn.disabled = index === pages.length - 1;
-        downloadBtn.style.display = (index === pages.length - 1) ? 'block' : 'none';
+        // downloadBtn.style.display = (index === pages.length - 1) ? 'block' : 'none'; // Keep download button always visible
         nextBtn.style.display = (index === pages.length - 1) ? 'none' : 'block';
     }
 
@@ -273,6 +279,114 @@ document.addEventListener('DOMContentLoaded', () => {
         cardWrapper.querySelector('#card-range').textContent = `× ${values.movement * 2}`;
         cardWrapper.querySelector('#card-capacity').textContent = `× ${values.constitution * 20}`;
     }
+
+    function collectCharacterData() {
+        const mainInfo = {
+            name: document.getElementById('char-name').value,
+            nickname: document.getElementById('char-nickname').value,
+            surname: document.getElementById('char-surname').value,
+            attributes: {}
+        };
+        document.querySelectorAll('.attribute-select').forEach(select => {
+            const attrName = select.id.split('-')[1];
+            mainInfo.attributes[attrName] = parseInt(select.value);
+        });
+
+        // Simple deep copy to avoid modifying original skillCategories structure if needed later
+        const categoriesData = JSON.parse(JSON.stringify(skillCategories));
+
+        return {
+            mainInfo,
+            skillCategories: categoriesData,
+            nextCategoryId,
+            nextSkillId
+        };
+    }
+
+    function saveDataToJson() {
+        const characterData = collectCharacterData();
+        const jsonData = JSON.stringify(characterData, null, 2);
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        const charName = document.getElementById('char-name').value.toLowerCase().replace(/ /g, '-') || 'character';
+        link.download = `${charName}-data.json`;
+        link.href = url;
+        link.click();
+
+        URL.revokeObjectURL(url); // Clean up the URL object
+    }
+
+    function loadDataFromJson(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const loadedData = JSON.parse(e.target.result);
+                applyLoadedData(loadedData);
+            } catch (error) {
+                console.error("Error parsing JSON:", error);
+                alert("Ошибка при загрузке файла. Убедитесь, что это корректный JSON файл.");
+            } finally {
+                // Clear the file input value so the change event fires even if the same file is selected again
+                loadFileInput.value = '';
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function applyLoadedData(data) {
+        // Load main info
+        if (data.mainInfo) {
+            document.getElementById('char-name').value = data.mainInfo.name || '';
+            document.getElementById('char-nickname').value = data.mainInfo.nickname || '';
+            document.getElementById('char-surname').value = data.mainInfo.surname || '';
+            if (data.mainInfo.attributes) {
+                document.querySelectorAll('.attribute-select').forEach(select => {
+                    const attrName = select.id.split('-')[1];
+                    if (data.mainInfo.attributes[attrName] !== undefined) {
+                        select.value = data.mainInfo.attributes[attrName];
+                    }
+                });
+            }
+        }
+
+        // Load skill categories
+        if (Array.isArray(data.skillCategories)) {
+            skillCategories = data.skillCategories;
+            // Ensure unique IDs and update nextId counters
+            let maxCategoryId = -1;
+            let maxSkillId = -1;
+            skillCategories.forEach(cat => {
+                if (cat.id > maxCategoryId) maxCategoryId = cat.id;
+                if (Array.isArray(cat.skills)) {
+                    cat.skills.forEach(skill => {
+                        if (skill.id > maxSkillId) maxSkillId = skill.id;
+                    });
+                } else {
+                    cat.skills = []; // Ensure skills is an array
+                }
+            });
+            nextCategoryId = maxCategoryId + 1;
+            nextSkillId = maxSkillId + 1;
+
+            rebuildCategoryPages();
+            showPage(0); // Go back to the first page after loading
+            updateUI();
+        } else {
+             // If skillCategories is not an array, initialize with empty data
+            skillCategories = [];
+            nextCategoryId = 0;
+            nextSkillId = 0;
+            rebuildCategoryPages();
+            showPage(0);
+            updateUI();
+        }
+    }
+
 
     function downloadCard() {
         const cardElement = cardWrapper.querySelector('.character-card');

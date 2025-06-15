@@ -171,6 +171,22 @@ h1 {
   opacity: 0.6;
 }
 
+#export-buttons {
+  display: flex;
+  justify-content: flex-end; /* Align buttons to the right */
+  gap: 10px; /* Space between buttons */
+  margin-bottom: 20px; /* Space below the export block */
+  padding-bottom: 15px;
+  border-bottom: 1px solid #444;
+}
+
+#export-buttons .nav-btn,
+#export-buttons .nav-btn-download {
+    padding: 8px 15px; /* Slightly smaller padding for top buttons */
+    font-size: 14px;
+}
+
+
 .nav-btn-download {
   background-color: #4CAF50;
   color: #fff;

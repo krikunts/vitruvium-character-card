@@ -13,6 +13,12 @@
     <div class="page-container">
       <!-- ЛЕВАЯ ЧАСТЬ - ФОРМА ЗАПОЛНЕНИЯ -->
       <div class="form-container">
+        <div id="export-buttons">
+          <button id="save-btn" class="nav-btn">Сохранить JSON</button>
+          <button id="load-btn" class="nav-btn">Загрузить JSON</button>
+          <input type="file" id="load-file-input" accept=".json" style="display: none;">
+          <button id="download-btn" class="nav-btn-download">Скачать PNG</button>
+        </div>
         <h1 id="form-title">Создание персонажа</h1>
         <div id="form-wizard">
           <!-- Сюда JS будет динамически добавлять страницы -->
@@ -21,7 +27,6 @@
           <button id="prev-btn" class="nav-btn">Назад</button>
           <button id="add-category-btn" class="add-btn nav-btn"><i class="fa-solid fa-plus"></i> Категорию</button>
           <button id="next-btn" class="nav-btn">Далее</button>
-          <button id="download-btn" class="nav-btn-download">Скачать PNG</button>
         </div>
         <div class="form-footer">
           <p>Неофициальный инструмент для системы <a href="https://gryadut.ru/vitruvium" target="_blank" rel="noopener noreferrer">Витрувий</a>.</p>
