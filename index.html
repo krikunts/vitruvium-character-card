@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Витрувий | Лист персонажа</title>
@@ -8,185 +8,209 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-</head>
-<body>
-
-<div class="page-container">
-    <!-- ЛЕВАЯ ЧАСТЬ - ФОРМА ЗАПОЛНЕНИЯ -->
-    <div class="form-container">
+  </head>
+  <body>
+    <div class="page-container">
+      <!-- ЛЕВАЯ ЧАСТЬ - ФОРМА ЗАПОЛНЕНИЯ -->
+      <div class="form-container">
         <h1 id="form-title">Создание персонажа</h1>
-
         <div id="form-wizard">
-            <!-- Сюда JS будет динамически добавлять страницы -->
+          <!-- Сюда JS будет динамически добавлять страницы -->
         </div>
-
         <div id="form-navigation">
-            <button id="prev-btn" class="nav-btn">Назад</button>
-            <button id="add-category-btn" class="add-btn nav-btn"><i class="fa-solid fa-plus"></i> Категорию</button>
-            <button id="next-btn" class="nav-btn">Далее</button>
-            <button id="download-btn" class="nav-btn-download">Скачать как PNG</button>
+          <button id="prev-btn" class="nav-btn">Назад</button>
+          <button id="add-category-btn" class="add-btn nav-btn"><i class="fa-solid fa-plus"></i> Категорию</button>
+          <button id="next-btn" class="nav-btn">Далее</button>
+          <button id="download-btn" class="nav-btn-download">Скачать PNG</button>
         </div>
-    </div>
-
-    <!-- ПРАВАЯ ЧАСТЬ - ПРЕДПРОСМОТР КАРТОЧКИ -->
-    <div class="card-preview-container">
+        <div class="form-footer">
+          <p>Неофициальный инструмент для системы <a href="https://gryadut.ru/vitruvium" target="_blank" rel="noopener noreferrer">Витрувий</a>.</p>
+          <p>Все права принадлежат авторам.</p>
+        </div>
+      </div>
+      <!-- ПРАВАЯ ЧАСТЬ - ПРЕДПРОСМОТР КАРТОЧКИ -->
+      <div class="card-preview-container">
         <div id="character-card-wrapper"></div>
+      </div>
     </div>
-</div>
-
-<!-- ==================== ШАБЛОНЫ ДЛЯ JS ==================== -->
-
-<!-- Шаблон для первой, статической страницы -->
-<template id="main-info-page-template">
-    <div class="form-page" data-page-type="main">
+    <!-- ==================== ШАБЛОНЫ ДЛЯ JS ==================== -->
+    <!-- Шаблон для первой, статической страницы -->
+    <template id="main-info-page-template">
+      <div class="form-page" data-page-type="main">
         <div class="form-section">
-            <div class="form-group"><label for="char-name">Имя</label><input type="text" id="char-name" value="Сара"></div>
-            <div class="form-group"><label for="char-nickname">Прозвище</label><input type="text" id="char-nickname" value='"Защитница"'></div>
-            <div class="form-group"><label for="char-surname">Фамилия</label><input type="text" id="char-surname" value="Коннор"></div>
+          <div class="form-group"><label for="char-name">Имя</label><input type="text" id="char-name" value="Сара"></div>
+          <div class="form-group"><label for="char-nickname">Прозвище</label><input type="text" id="char-nickname" value='"Защитница"'></div>
+          <div class="form-group"><label for="char-surname">Фамилия</label><input type="text" id="char-surname" value="Коннор"></div>
         </div>
         <div class="form-section">
-            <h2>Характеристики</h2>
-            <div id="attributes-validation-error" class="error-message hidden"></div>
-            <div class="form-grid">
-                <div class="form-group"><label>Телосложение</label>
-                    <select id="attr-constitution" class="attribute-select">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Внимание</label>
-                    <select id="attr-attention" class="attribute-select">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Движение</label>
-                    <select id="attr-movement" class="attribute-select">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                    </select></div>
-                <div class="form-group"><label>Мышление</label>
-                    <select id="attr-mind" class="attribute-select">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                    </select>
-                    </div>
-                <div class="form-group"><label>Общение</label>
-                    <select id="attr-social" class="attribute-select">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                    </select>
-                    </div>
-                <div class="form-group"><label>Воля</label>
-                    <select id="attr-will" class="attribute-select">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                    </select></div>
+          <h2>Характеристики</h2>
+          <div id="attributes-validation-error" class="error-message hidden"></div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Телосложение</label>
+              <select id="attr-constitution" class="attribute-select">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+              </select>
             </div>
+            <div class="form-group">
+              <label>Внимание</label>
+              <select id="attr-attention" class="attribute-select">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Движение</label>
+              <select id="attr-movement" class="attribute-select">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Мышление</label>
+              <select id="attr-mind" class="attribute-select">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Общение</label>
+              <select id="attr-social" class="attribute-select">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Воля</label>
+              <select id="attr-will" class="attribute-select">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+              </select>
+            </div>
+          </div>
         </div>
-    </div>
-</template>
-
-<!-- Шаблон для динамической страницы категории -->
-<template id="skill-category-page-template">
-     <div class="form-page" data-page-type="category">
+      </div>
+    </template>
+    <!-- Шаблон для динамической страницы категории -->
+    <template id="skill-category-page-template">
+      <div class="form-page" data-page-type="category">
         <button class="remove-category-btn" title="Удалить эту категорию и страницу">×</button>
         <div class="form-section">
-            <div class="form-group category-name-group">
-                <label>Название категории</label>
-                <input type="text" class="category-name-input" placeholder="Например, Тактика выживания">
-            </div>
+          <div class="form-group category-name-group">
+            <label>Название категории</label>
+            <input type="text" class="category-name-input" placeholder="Например, Тактика выживания">
+          </div>
         </div>
         <div class="form-section">
-            <h2>Навыки в этой категории</h2>
-            <div class="skills-in-category-container"></div>
-            <button class="add-skill-btn"><i class="fa-solid fa-plus-circle"></i> Добавить навык</button>
+          <h2>Навыки в этой категории</h2>
+          <div class="skills-in-category-container"></div>
+          <button class="add-skill-btn"><i class="fa-solid fa-plus-circle"></i> Добавить навык</button>
         </div>
-    </div>
-</template>
-
-<!-- Шаблон для навыка в форме (внутри страницы категории) -->
-<template id="skill-form-template">
-    <div class="skill-form-block">
+      </div>
+    </template>
+    <!-- Шаблон для навыка в форме (внутри страницы категории) -->
+    <template id="skill-form-template">
+      <div class="skill-form-block">
         <button class="remove-skill-btn" title="Удалить навык">×</button>
         <div class="form-grid">
-            <div class="form-group"><label>Название навыка</label><input type="text" class="skill-name-input"></div>
-            <div class="form-group"><label>Уровень (0-5)</label><input type="number" class="skill-level-input" min="0" max="5" value="1"></div>
+          <div class="form-group"><label>Название навыка</label><input type="text" class="skill-name-input"></div>
+          <div class="form-group"><label>Уровень (0-5)</label><input type="number" class="skill-level-input" min="0" max="5" value="1"></div>
         </div>
         <div class="form-group"><label>Описание</label><textarea class="skill-desc-input" rows="2"></textarea></div>
-    </div>
-</template>
-
-<!-- Шаблон основной карточки -->
-<template id="main-card-template">
-    <div class="character-card">
+      </div>
+    </template>
+    <!-- Шаблон основной карточки -->
+    <template id="main-card-template">
+      <div class="character-card">
         <div class="left-column">
-            <div class="attributes-container">
-                <div class="attribute-block"><div class="attribute-top"><i class="fa-solid fa-person attribute-icon"></i><span class="attribute-value" id="card-attr-constitution"></span></div><div class="attribute-label">Телосложение</div></div>
-                <div class="attribute-block"><div class="attribute-top"><i class="fa-solid fa-eye attribute-icon"></i><span class="attribute-value" id="card-attr-attention"></span></div><div class="attribute-label">Внимание</div></div>
-                <div class="attribute-block"><div class="attribute-top"><i class="fa-solid fa-person-running attribute-icon"></i><span class="attribute-value" id="card-attr-movement"></span></div><div class="attribute-label">Движение</div></div>
-                <div class="attribute-block"><div class="attribute-top"><i class="fa-solid fa-brain attribute-icon"></i><span class="attribute-value" id="card-attr-mind"></span></div><div class="attribute-label">Мышление</div></div>
-                <div class="attribute-block"><div class="attribute-top"><i class="fa-solid fa-masks-theater attribute-icon"></i><span class="attribute-value" id="card-attr-social"></span></div><div class="attribute-label">Общение</div></div>
-                <div class="attribute-block"><div class="attribute-top"><div class="custom-icon-wrapper"><i class="fa-solid fa-circle"></i><i class="fa-solid fa-user fa-inverse"></i></div><span class="attribute-value" id="card-attr-will"></span></div><div class="attribute-label">Воля</div></div>
+          <div class="attributes-container">
+            <div class="attribute-block">
+              <div class="attribute-top"><i class="fa-solid fa-person attribute-icon"></i><span class="attribute-value" id="card-attr-constitution"></span></div>
+              <div class="attribute-label">Телосложение</div>
             </div>
+            <div class="attribute-block">
+              <div class="attribute-top"><i class="fa-solid fa-eye attribute-icon"></i><span class="attribute-value" id="card-attr-attention"></span></div>
+              <div class="attribute-label">Внимание</div>
+            </div>
+            <div class="attribute-block">
+              <div class="attribute-top"><i class="fa-solid fa-person-running attribute-icon"></i><span class="attribute-value" id="card-attr-movement"></span></div>
+              <div class="attribute-label">Движение</div>
+            </div>
+            <div class="attribute-block">
+              <div class="attribute-top"><i class="fa-solid fa-brain attribute-icon"></i><span class="attribute-value" id="card-attr-mind"></span></div>
+              <div class="attribute-label">Мышление</div>
+            </div>
+            <div class="attribute-block">
+              <div class="attribute-top"><i class="fa-solid fa-masks-theater attribute-icon"></i><span class="attribute-value" id="card-attr-social"></span></div>
+              <div class="attribute-label">Общение</div>
+            </div>
+            <div class="attribute-block">
+              <div class="attribute-top">
+                <div class="custom-icon-wrapper"><i class="fa-solid fa-circle"></i><i class="fa-solid fa-user fa-inverse"></i></div>
+                <span class="attribute-value" id="card-attr-will"></span>
+              </div>
+              <div class="attribute-label">Воля</div>
+            </div>
+          </div>
         </div>
         <div class="right-column">
-            <div class="header">
-                <div class="name-block"><span class="name" id="card-full-name"></span></div>
-                <div class="stats-line">
-                    <div class="stat-item"><i class="fa-solid fa-heart stat-icon"></i><span class="stat-value" id="card-health"></span></div>
-                    <div class="stat-item"><i class="fa-solid fa-snowflake stat-icon"></i><span class="stat-value" id="card-inspiration"></span></div>
-                    <div class="stat-item"><i class="fa-solid fa-shoe-prints stat-icon"></i><span class="stat-value" id="card-range"></span></div>
-                    <div class="stat-item"><i class="fa-solid fa-dumbbell stat-icon"></i><span class="stat-value" id="card-capacity"></span></div>
-                </div>
+          <div class="header">
+            <div class="name-block"><span class="name" id="card-full-name"></span></div>
+            <div class="stats-line">
+              <div class="stat-item"><i class="fa-solid fa-heart stat-icon"></i><span class="stat-value" id="card-health"></span></div>
+              <div class="stat-item"><i class="fa-solid fa-snowflake stat-icon"></i><span class="stat-value" id="card-inspiration"></span></div>
+              <div class="stat-item"><i class="fa-solid fa-shoe-prints stat-icon"></i><span class="stat-value" id="card-range"></span></div>
+              <div class="stat-item"><i class="fa-solid fa-dumbbell stat-icon"></i><span class="stat-value" id="card-capacity"></span></div>
             </div>
-            <div class="content">
-                <div id="card-skills-list-wrapper" class="skills-list-wrapper"></div>
-            </div>
+          </div>
+          <div class="content">
+            <div id="card-skills-list-wrapper" class="skills-list-wrapper"></div>
+          </div>
         </div>
-    </div>
-</template>
-
-<!-- Шаблон для категории на карточке -->
-<template id="skill-category-card-template">
-    <div class="skill-category-display-block">
+      </div>
+    </template>
+    <!-- Шаблон для категории на карточке -->
+    <template id="skill-category-card-template">
+      <div class="skill-category-display-block">
         <h2 class="category-title"></h2>
         <div class="skills-in-category-display-container"></div>
-    </div>
-</template>
-
-<!-- Шаблон для навыка на карточке -->
-<template id="skill-card-template">
-    <div class="skill-display-block">
-        <div class="skill-item"><span class="skill-name"></span><div class="skill-dots"></div></div>
+      </div>
+    </template>
+    <!-- Шаблон для навыка на карточке -->
+    <template id="skill-card-template">
+      <div class="skill-display-block">
+        <div class="skill-item">
+          <span class="skill-name"></span>
+          <div class="skill-dots"></div>
+        </div>
         <div class="skill-description"></div>
-    </div>
-</template>
-
-<script src="script.js"></script>
-</body>
+      </div>
+    </template>
+    <script src="script.js"></script>
+  </body>
 </html>
