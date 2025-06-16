@@ -54,20 +54,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function loadExampleData() {
         _addCategory('Выживание', [            
-            { name: 'Маскировка', desc: 'Потратьте 1 Вдохновение, чтобы быстро найти или обустроить временное безопасное укрытие. Добавьте 2 кубика к своей проверке Внимания для обнаружения потенциальных убежищ или скрытия следов.', level: 3 },
+            { name: 'Маскировка', desc: 'Потратьте *1 Вдохновение*, чтобы быстро найти или обустроить временное безопасное укрытие. Добавьте 2 кубика к своей проверке Внимания для обнаружения потенциальных убежищ или скрытия следов.', level: 3 },
 
         ]);
         _addCategory('Боец', [
-            { name: 'Тактическая Стрельба', desc: 'Потратьте 2 Вдохновения, чтобы совершить прицельный выстрел или быструю очередь. Добавьте 2 кубика к своей проверке Внимания для успешного попадания, игнорируя 1 пункт защиты цели.', level: 4 },
+            { name: 'Тактическая Стрельба', desc: 'Потратьте *2 Вдохновения*, чтобы совершить прицельный выстрел или быструю очередь. Добавьте 2 кубика к своей проверке Внимания для успешного попадания, игнорируя 1 пункт защиты цели.', level: 4 },
 
         ]);
         _addCategory('Несгибаемая воля', [
-            { name: 'Железная Воля', desc: 'Вы невероятно стойки к боли и отчаянию. Потратьте 1 Вдохновение чтобы добавить 2 кубика при проверке Воли.', level: 3 },
+            { name: 'Железная Воля', desc: 'Вы невероятно стойки к боли и отчаянию. Потратьте *1 Вдохновение* чтобы добавить 2 кубика при проверке Воли.', level: 3 },
         ]);
 
         _addCategory('Защитник будущего', [
-            { name: 'Взгляд в будущее', desc: 'В начале боя с роботами получите 1 Вдохновение, знание о грядущем даёт вам сил для борьбы.', level: 1 },
-            { name: 'Никакой судьбы', desc: 'Потратьте 2 Вдохновения, чтобы перебросить любой проваленный бросок — ваш или союзника.', level: 4 }
+            { name: 'Взгляд в будущее', desc: 'В начале боя с роботами получите *1 Вдохновение*, знание о грядущем даёт вам сил для борьбы.', level: 1 },
+            { name: 'Никакой судьбы', desc: 'Потратьте *2 Вдохновения*, чтобы перебросить любой проваленный бросок — ваш или союзника.', level: 4 }
         ]);
     }
 
@@ -139,22 +139,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showPage(index) {
         const pages = formWizard.querySelectorAll('.form-page');
-        if (index < 0 || index >= pages.length) return;
+        if (index < 0 || index >= pages.length) {
+            console.log('Invalid page index:', index);
+            return;
+        }
         
         currentPageIndex = index;
         pages.forEach((page, i) => page.classList.toggle('active', i === index));
         
         if(index === 0) {
-            formTitle.textContent = "Шаг 1: Основная информация";
+            formTitle.textContent = "Основная информация";
+            formTitle.style.display = 'block';
         } else {
-            const catName = skillCategories[index - 1]?.name || "Новая категория";
-            formTitle.textContent = `Шаг ${index + 1}: Категория "${catName}"`;
+            formTitle.style.display = 'none';
         }
         
         prevBtn.disabled = index === 0;
         nextBtn.disabled = index === pages.length - 1;
-        // downloadBtn.style.display = (index === pages.length - 1) ? 'block' : 'none'; // Keep download button always visible
-        nextBtn.style.display = (index === pages.length - 1) ? 'none' : 'block';
     }
 
     // --- ОБНОВЛЕНИЕ ПРЕВЬЮ ---
@@ -164,11 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateStaticInfo() {
-        const fullName = [
-            document.getElementById('char-name').value,
-            document.getElementById('char-nickname').value,
-            document.getElementById('char-surname').value
-        ].join(' ').toUpperCase().trim();
+        const fullName = document.getElementById('char-full-name').value.toUpperCase().trim();
         cardWrapper.querySelector('#card-full-name').textContent = fullName;
         
         const attributeValues = {};
@@ -194,7 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
             cat.skills.forEach(skill => {
                 const skillCardNode = templates.skillCard.content.cloneNode(true);
                 skillCardNode.querySelector('.skill-name').textContent = skill.name;
-                skillCardNode.querySelector('.skill-description').textContent = skill.description;
+                const formattedDescription = skill.description.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+                skillCardNode.querySelector('.skill-description').innerHTML = formattedDescription;
                 
                 const dotsContainer = skillCardNode.querySelector('.skill-dots');
                 dotsContainer.innerHTML = '';
@@ -226,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (target.classList.contains('category-name-input')) {
             category.name = target.value;
-            formTitle.textContent = `Шаг ${currentPageIndex + 1}: Категория "${target.value}"`;
         } else {
             const skillBlock = target.closest('.skill-form-block');
             if (skillBlock) {
@@ -235,7 +232,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (skill) {
                     if (target.classList.contains('skill-name-input')) skill.name = target.value;
                     if (target.classList.contains('skill-desc-input')) skill.description = target.value;
-                    if (target.classList.contains('skill-level-input')) skill.level = target.value;
+                    if (target.classList.contains('skill-level-input')) {
+                        let level = parseInt(target.value);
+                        if (isNaN(level)) {
+                            level = 0; // Default to 0 if input is not a number
+                        }
+                        skill.level = Math.max(0, Math.min(5, level)); // Clamp between 0 and 5
+                        target.value = skill.level; // Update the input field to reflect the clamped value
+                    }
                 }
             }
         }
@@ -282,9 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function collectCharacterData() {
         const mainInfo = {
-            name: document.getElementById('char-name').value,
-            nickname: document.getElementById('char-nickname').value,
-            surname: document.getElementById('char-surname').value,
+            name: document.getElementById('char-full-name').value,
             attributes: {}
         };
         document.querySelectorAll('.attribute-select').forEach(select => {
@@ -292,14 +294,19 @@ document.addEventListener('DOMContentLoaded', () => {
             mainInfo.attributes[attrName] = parseInt(select.value);
         });
 
-        // Simple deep copy to avoid modifying original skillCategories structure if needed later
-        const categoriesData = JSON.parse(JSON.stringify(skillCategories));
+        // Create a simplified structure for saving, excluding skill IDs and counters
+        const simplifiedCategoriesData = skillCategories.map(cat => ({
+            name: cat.name,
+            skills: cat.skills.map(skill => ({
+                name: skill.name,
+                description: skill.description,
+                level: skill.level
+            }))
+        }));
 
         return {
             mainInfo,
-            skillCategories: categoriesData,
-            nextCategoryId,
-            nextSkillId
+            skillCategories: simplifiedCategoriesData
         };
     }
 
@@ -310,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = URL.createObjectURL(blob);
 
         const link = document.createElement('a');
-        const charName = document.getElementById('char-name').value.toLowerCase().replace(/ /g, '-') || 'character';
+        const charName = document.getElementById('char-full-name').value.toLowerCase().replace(/ /g, '-') || 'character';
         link.download = `${charName}-data.json`;
         link.href = url;
         link.click();
@@ -341,9 +348,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyLoadedData(data) {
         // Load main info
         if (data.mainInfo) {
-            document.getElementById('char-name').value = data.mainInfo.name || '';
-            document.getElementById('char-nickname').value = data.mainInfo.nickname || '';
-            document.getElementById('char-surname').value = data.mainInfo.surname || '';
+            const fullNameInput = document.getElementById('char-full-name');
+            if (data.mainInfo.name || data.mainInfo.nickname || data.mainInfo.surname) {
+                // Backward compatibility: concatenate old fields
+                fullNameInput.value = [
+                    data.mainInfo.name || '',
+                    data.mainInfo.nickname || '',
+                    data.mainInfo.surname || ''
+                ].join(' ').trim();
+            } else if (data.mainInfo.name !== undefined) {
+                // Load new single name field
+                fullNameInput.value = data.mainInfo.name || '';
+            }
+
             if (data.mainInfo.attributes) {
                 document.querySelectorAll('.attribute-select').forEach(select => {
                     const attrName = select.id.split('-')[1];
@@ -358,20 +375,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(data.skillCategories)) {
             skillCategories = data.skillCategories;
             // Ensure unique IDs and update nextId counters
-            let maxCategoryId = -1;
-            let maxSkillId = -1;
-            skillCategories.forEach(cat => {
-                if (cat.id > maxCategoryId) maxCategoryId = cat.id;
-                if (Array.isArray(cat.skills)) {
-                    cat.skills.forEach(skill => {
-                        if (skill.id > maxSkillId) maxSkillId = skill.id;
+            // Assign new IDs to loaded categories and skills, and update counters
+            let currentMaxCategoryId = -1;
+            let currentMaxSkillId = -1;
+
+            skillCategories = data.skillCategories.map(cat => {
+                const newCat = { ...cat };
+                if (newCat.id === undefined) {
+                    newCat.id = nextCategoryId++;
+                }
+                if (newCat.id > currentMaxCategoryId) currentMaxCategoryId = newCat.id;
+
+                if (Array.isArray(newCat.skills)) {
+                    newCat.skills = newCat.skills.map(skill => {
+                        const newSkill = { ...skill };
+                        if (newSkill.id === undefined) {
+                            newSkill.id = nextSkillId++;
+                        }
+                        if (newSkill.id > currentMaxSkillId) currentMaxSkillId = newSkill.id;
+                        return newSkill;
                     });
                 } else {
-                    cat.skills = []; // Ensure skills is an array
+                    newCat.skills = [];
                 }
+                return newCat;
             });
-            nextCategoryId = maxCategoryId + 1;
-            nextSkillId = maxSkillId + 1;
+            // Ensure nextId counters are at least one greater than the highest ID found/assigned
+            nextCategoryId = Math.max(nextCategoryId, currentMaxCategoryId + 1);
+            nextSkillId = Math.max(nextSkillId, currentMaxSkillId + 1);
 
             rebuildCategoryPages();
             showPage(0); // Go back to the first page after loading
@@ -393,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
         html2canvas(cardElement, { scale: 2, backgroundColor: null, useCORS: true })
             .then(canvas => {
                 const link = document.createElement('a');
-                const charName = document.getElementById('char-name').value.toLowerCase().replace(/ /g, '-') || 'character';
+                const charName = document.getElementById('char-full-name').value.toLowerCase().replace(/ /g, '-') || 'character';
                 link.download = `${charName}-card.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();

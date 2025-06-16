@@ -14,19 +14,19 @@
       <!-- ЛЕВАЯ ЧАСТЬ - ФОРМА ЗАПОЛНЕНИЯ -->
       <div class="form-container">
         <div id="export-buttons">
-          <button id="save-btn" class="nav-btn">Сохранить JSON</button>
-          <button id="load-btn" class="nav-btn">Загрузить JSON</button>
+          <button id="save-btn" class="nav-btn"><i class="fa fa-download" aria-hidden="true"></i> JSON</button>
+          <button id="load-btn" class="nav-btn"><i class="fa fa-upload" aria-hidden="true"></i> JSON</button>
           <input type="file" id="load-file-input" accept=".json" style="display: none;">
-          <button id="download-btn" class="nav-btn-download">Скачать PNG</button>
+          <button id="download-btn" class="nav-btn-download"><i class="fa fa-download" aria-hidden="true"></i> PNG</button>
         </div>
         <h1 id="form-title">Создание персонажа</h1>
         <div id="form-wizard">
           <!-- Сюда JS будет динамически добавлять страницы -->
         </div>
         <div id="form-navigation">
-          <button id="prev-btn" class="nav-btn">Назад</button>
-          <button id="add-category-btn" class="add-btn nav-btn"><i class="fa-solid fa-plus"></i> Категорию</button>
-          <button id="next-btn" class="nav-btn">Далее</button>
+          <button id="prev-btn" class="nav-btn"><i class="fa-solid fa-arrow-left"></i></button>
+          <button id="add-category-btn" class="add-btn nav-btn"><i class="fa-solid fa-plus"></i> Категория</button>
+          <button id="next-btn" class="nav-btn"><i class="fa-solid fa-arrow-right"></i></button>
         </div>
         <div class="form-footer">
           <p>Неофициальный инструмент для системы <a href="https://gryadut.ru/vitruvium" target="_blank" rel="noopener noreferrer">Витрувий</a>.</p>
@@ -43,9 +43,7 @@
     <template id="main-info-page-template">
       <div class="form-page" data-page-type="main">
         <div class="form-section">
-          <div class="form-group"><label for="char-name">Имя</label><input type="text" id="char-name" value="Сара"></div>
-          <div class="form-group"><label for="char-nickname">Прозвище</label><input type="text" id="char-nickname" value='"Защитница"'></div>
-          <div class="form-group"><label for="char-surname">Фамилия</label><input type="text" id="char-surname" value="Коннор"></div>
+          <div class="form-group"><label for="char-full-name">Имя</label><input type="text" id="char-full-name" value="Сара Коннор"></div>
         </div>
         <div class="form-section">
           <h2>Характеристики</h2>
