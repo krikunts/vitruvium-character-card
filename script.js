@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveBtn = document.getElementById('save-btn');
     const loadBtn = document.getElementById('load-btn');
     const loadFileInput = document.getElementById('load-file-input');
+    const uploadPngBtn = document.getElementById('upload-png-btn');
+    const uploadPngInput = document.getElementById('upload-png-input');
     const cardWrapper = document.getElementById('character-card-wrapper');
     const formTitle = document.getElementById('form-title');
 
@@ -42,6 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.addEventListener('click', saveDataToJson);
         loadBtn.addEventListener('click', () => loadFileInput.click());
         loadFileInput.addEventListener('change', loadDataFromJson);
+        uploadPngBtn.addEventListener('click', () => uploadPngInput.click());
+        uploadPngInput.addEventListener('change', uploadCardFromPng);
         form.addEventListener('input', handleFormInput);
         form.addEventListener('click', handleFormClick);
         downloadBtn.addEventListener('click', downloadCard);
@@ -67,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         _addCategory('Защитник будущего', [
             { name: 'Взгляд в будущее', desc: 'В начале боя с роботами получите *1 Вдохновение*, знание о грядущем даёт вам сил для борьбы.', level: 1 },
-            { name: 'Никакой судьбы', desc: 'Потратьте *2 Вдохновения*, чтобы перебросить любой проваленный бросок — ваш или союзника.', level: 4 }
+            { name: 'Никакой судьбы', 'desc': 'Потратьте *2 Вдохновения*, чтобы перебросить любой проваленный бросок — ваш или союзника.', level: 4 }
         ]);
     }
 
@@ -419,16 +423,212 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
+    // --- PNG METADATA HANDLING (inspired by png-chunks-encode/extract) ---
+
+    // Helper to convert Data URL to Uint8Array
+    function dataURLtoUint8Array(dataURL) {
+        const base64 = dataURL.split(',')[1];
+        const binaryString = atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes;
+    }
+
+    // Helper to convert Uint8Array to Data URL
+    function uint8ArrayToDataURL(uint8Array, mimeType) {
+        let binary = '';
+        const len = uint8Array.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(uint8Array[i]);
+        }
+        return `data:${mimeType};base64,` + btoa(binary);
+    }
+
+    // Basic CRC32 implementation (simplified for demonstration, a full one is complex)
+    // This is a placeholder. A proper CRC32 implementation is crucial for valid PNGs.
+    // For a real-world scenario, a pre-built CRC32 library would be used.
+    function crc32(buf) {
+        let crc = -1;
+        for (let i = 0; i < buf.length; i++) {
+            crc = (crc >>> 8) ^ crc32Table[(crc ^ buf[i]) & 0xFF];
+        }
+        return crc ^ (-1);
+    }
+
+    const crc32Table = [];
+    (function() {
+        for (let i = 0; i < 256; i++) {
+            let c = i;
+            for (let k = 0; k < 8; k++) {
+                c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+            }
+            crc32Table[i] = c;
+        }
+    })();
+
+    // Function to extract chunks (simplified)
+    function extractChunks(buffer) {
+        const chunks = [];
+        let offset = 8; // Skip PNG signature
+
+        while (offset < buffer.length) {
+            const length = (buffer[offset] << 24) |
+                           (buffer[offset + 1] << 16) |
+                           (buffer[offset + 2] << 8) |
+                            buffer[offset + 3];
+            
+            const type = String.fromCharCode(buffer[offset + 4], buffer[offset + 5], buffer[offset + 6], buffer[offset + 7]);
+            const data = buffer.slice(offset + 8, offset + 8 + length);
+            const crc = (buffer[offset + 8 + length] << 24) |
+                        (buffer[offset + 8 + length + 1] << 16) |
+                        (buffer[offset + 8 + length + 2] << 8) |
+                         buffer[offset + 8 + length + 3];
+
+            chunks.push({ name: type, data: data, length: length, crc: crc });
+            offset += 12 + length; // 4 (length) + 4 (type) + length (data) + 4 (crc)
+            if (type === 'IEND') break; // End of image
+        }
+        return chunks;
+    }
+
+    // Function to encode chunks (simplified)
+    function encodeChunks(chunks) {
+        // PNG signature
+        const signature = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        let totalLength = signature.length;
+        chunks.forEach(chunk => {
+            totalLength += 12 + chunk.data.length; // length + type + data + crc
+        });
+
+        const outputBuffer = new Uint8Array(totalLength);
+        let offset = 0;
+
+        outputBuffer.set(signature, offset);
+        offset += signature.length;
+
+        chunks.forEach(chunk => {
+            // Length
+            outputBuffer[offset++] = (chunk.data.length >>> 24) & 0xFF;
+            outputBuffer[offset++] = (chunk.data.length >>> 16) & 0xFF;
+            outputBuffer[offset++] = (chunk.data.length >>> 8) & 0xFF;
+            outputBuffer[offset++] = (chunk.data.length >>> 0) & 0xFF;
+
+            // Type
+            const typeBytes = new TextEncoder().encode(chunk.name);
+            outputBuffer.set(typeBytes, offset);
+            offset += 4;
+
+            // Data
+            outputBuffer.set(chunk.data, offset);
+            offset += chunk.data.length;
+
+            // CRC (calculate for type + data)
+            const crcBuffer = new Uint8Array(4 + chunk.data.length);
+            crcBuffer.set(typeBytes, 0);
+            crcBuffer.set(chunk.data, 4);
+            const calculatedCrc = crc32(crcBuffer);
+
+            outputBuffer[offset++] = (calculatedCrc >>> 24) & 0xFF;
+            outputBuffer[offset++] = (calculatedCrc >>> 16) & 0xFF;
+            outputBuffer[offset++] = (calculatedCrc >>> 8) & 0xFF;
+            outputBuffer[offset++] = (calculatedCrc >>> 0) & 0xFF;
+        });
+
+        return outputBuffer;
+    }
+
     function downloadCard() {
         const cardElement = cardWrapper.querySelector('.character-card');
         html2canvas(cardElement, { scale: 2, backgroundColor: null, useCORS: true })
             .then(canvas => {
+                const characterData = collectCharacterData();
+                const jsonData = JSON.stringify(characterData);
+                
+                // Convert canvas to Uint8Array (PNG data)
+                const dataUrl = canvas.toDataURL('image/png');
+                const originalPngBytes = dataURLtoUint8Array(dataUrl);
+
+                // Extract existing chunks
+                const chunks = extractChunks(originalPngBytes);
+
+                // Create a tEXt chunk for the JSON data
+                const keyword = 'VitruviumData';
+                const textData = keyword + '\0' + jsonData; // keyword + null separator + text
+                const textBytes = new TextEncoder().encode(textData);
+
+                const tEXtChunk = {
+                    name: 'tEXt',
+                    data: textBytes,
+                    length: textBytes.length // This will be calculated by encodeChunks, but good to have
+                };
+
+                // Find IEND chunk and insert tEXt chunk before it
+                const iendIndex = chunks.findIndex(chunk => chunk.name === 'IEND');
+                if (iendIndex !== -1) {
+                    chunks.splice(iendIndex, 0, tEXtChunk);
+                } else {
+                    chunks.push(tEXtChunk); // Should not happen for valid PNGs
+                }
+
+                // Encode the modified chunks back into a PNG Uint8Array
+                const newPngBytes = encodeChunks(chunks);
+                
+                // Convert the new Uint8Array back to a Data URL for download
+                const newPngDataUrl = uint8ArrayToDataURL(newPngBytes, 'image/png');
+
                 const link = document.createElement('a');
                 const charName = document.getElementById('char-full-name').value.toLowerCase().replace(/ /g, '-') || 'character';
                 link.download = `${charName}-card.png`;
-                link.href = canvas.toDataURL('image/png');
+                link.href = newPngDataUrl;
                 link.click();
             });
+    }
+
+    function uploadCardFromPng(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            try {
+                const pngBytes = dataURLtoUint8Array(dataUrl);
+                const chunks = extractChunks(pngBytes);
+
+                let foundData = null;
+                for (const chunk of chunks) {
+                    if (chunk.name === 'tEXt') {
+                        const textDecoder = new TextDecoder();
+                        const text = textDecoder.decode(chunk.data);
+                        const nullSeparatorIndex = text.indexOf('\0');
+                        if (nullSeparatorIndex !== -1) {
+                            const keyword = text.substring(0, nullSeparatorIndex);
+                            if (keyword === 'VitruviumData') {
+                                const jsonDataString = text.substring(nullSeparatorIndex + 1);
+                                foundData = JSON.parse(jsonDataString);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (foundData) {
+                    applyLoadedData(foundData);
+                } else {
+                    alert("В этом PNG файле не найдено данных персонажа.");
+                }
+
+            } catch (error) {
+                console.error("Error processing PNG:", error);
+                alert("Ошибка при обработке PNG файла. Убедитесь, что это корректный PNG файл.");
+            } finally {
+                uploadPngInput.value = '';
+            }
+        };
+        reader.readAsDataURL(file);
     }
 
     // --- ЗАПУСК ---

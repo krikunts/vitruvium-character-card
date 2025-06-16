@@ -395,7 +395,6 @@ button.add-skill-btn:hover {
 .right-column {
   flex-grow: 1;
   background-color: #1a1a1a;
-  background-image: url('https://www.transparenttextures.com/patterns/subtle-dark-vertical.png');
   padding: 20px 30px;
   z-index: 1;
 }
