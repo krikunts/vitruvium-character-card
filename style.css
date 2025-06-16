@@ -240,6 +240,10 @@ h1 {
   position: relative;
 }
 
+.skill-desc-input {
+  min-height: 100px;
+}
+
 .remove-skill-btn {
   position: absolute;
   top: 5px;
