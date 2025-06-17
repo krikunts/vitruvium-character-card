@@ -1,24 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- ГЛОБАЛЬНЫЕ ДАННЫЕ И СОСТОЯНИЕ ---
     let skillCategories = [];
+    let theme = '/themes/dark.json';
+    let customStyles = {};
     let nextCategoryId = 0;
     let nextSkillId = 0;
     let currentPageIndex = 0;
-
-    // --- ЭЛЕМЕНТЫ DOM ---
-    const formWizard = document.getElementById('form-wizard');
-    const form = document.querySelector('.form-container');
-    const downloadBtn = document.getElementById('download-btn');
-    const prevBtn = document.getElementById('prev-btn');
-    const nextBtn = document.getElementById('next-btn');
-    const addCategoryBtn = document.getElementById('add-category-btn');
-    const saveBtn = document.getElementById('save-btn');
-    const loadBtn = document.getElementById('load-btn');
-    const loadFileInput = document.getElementById('load-file-input');
-    const uploadPngBtn = document.getElementById('upload-png-btn');
-    const uploadPngInput = document.getElementById('upload-png-input');
-    const cardWrapper = document.getElementById('character-card-wrapper');
-    const formTitle = document.getElementById('form-title');
 
     // --- ШАБЛОНЫ ---
     const templates = {
@@ -29,17 +16,37 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryCard: document.getElementById('skill-category-card-template'),
         skillCard: document.getElementById('skill-card-template')
     };
-    
+
+    // --- ЭЛЕМЕНТЫ DOM ---
+    const cardWrapper = document.getElementById('character-card-wrapper');
+    const cardNode = templates.mainCard.content.cloneNode(true);
+    cardWrapper.appendChild(cardNode);
+
+    const formWizard = document.getElementById('form-wizard');
+    const form = document.querySelector('.form-container');
+    const downloadBtn = document.getElementById('download-btn');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const addCategoryBtn = document.getElementById('add-category-btn');
+    const saveBtn = document.getElementById('save-btn');
+    const loadBtn = document.getElementById('load-btn');
+    const loadFileInput = document.getElementById('load-file-input');
+    const uploadPngBtn = document.getElementById('upload-png-btn');
+    const uploadPngInput = document.getElementById('upload-png-input');    
+    const characterCard = cardWrapper.querySelector('.character-card'); // Get the actual card element
+    const themeSelect = document.getElementById('style-theme'); // Get the theme dropdown
+    const jsonStyleContainer = document.getElementById('custom-style-json-container');
+    const themeControlsContainer = document.getElementById('theme-controls-container'); // Get the theme controls container
+    const jsonInputArea = document.getElementById('json-style-input'); // Get the JSON textarea
+    const formTitle = document.getElementById('form-title');
+
     // --- ИНИЦИАЛИЗАЦИЯ ---
     function init() {
-        const cardNode = templates.mainCard.content.cloneNode(true);
-        cardWrapper.appendChild(cardNode);
+        const formWizard = document.getElementById('form-wizard');
         
         const mainInfoPage = templates.mainInfoPage.content.cloneNode(true);
         formWizard.appendChild(mainInfoPage);
         
-        prevBtn.addEventListener('click', () => navigate(-1));
-        nextBtn.addEventListener('click', () => navigate(1));
         addCategoryBtn.addEventListener('click', addCategoryAndNavigate);
         saveBtn.addEventListener('click', saveDataToJson);
         loadBtn.addEventListener('click', () => loadFileInput.click());
@@ -47,22 +54,30 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadPngBtn.addEventListener('click', () => uploadPngInput.click());
         uploadPngInput.addEventListener('change', uploadCardFromPng);
         form.addEventListener('input', handleFormInput);
-        form.addEventListener('click', handleFormClick);
-        downloadBtn.addEventListener('click', downloadCard);
+        form.addEventListener('click', handleFormClick);        
+        if (downloadBtn) downloadBtn.addEventListener('click', downloadCard); // check if button exists
+        if (prevBtn) prevBtn.addEventListener('click', () => navigate(-1));
+        if (nextBtn) nextBtn.addEventListener('click', () => navigate(1));
+        
+        if (themeSelect) themeSelect.addEventListener('change', handleThemeChange);
+        if (jsonInputArea) jsonInputArea.addEventListener('input', applyCustomStylesFromJson); // Listen for input on the JSON area
+        
+        if (jsonStyleContainer) jsonStyleContainer.style.display = 'none'; // Hide JSON input initially
 
+        setupFoldableElements(); // Setup foldable elements on init
         loadExampleData(); // Or load from local storage if implemented later
         rebuildCategoryPages();
         showPage(0);
-        updateUI(); 
+        updateUI();
     }
-    
+
     function loadExampleData() {
         _addCategory('Выживание', [            
             { name: 'Маскировка', desc: 'Потратьте *1 Вдохновение*, чтобы быстро найти или обустроить временное безопасное укрытие. Добавьте 2 кубика к своей проверке Внимания для обнаружения потенциальных убежищ или скрытия следов.', level: 3 },
 
         ]);
         _addCategory('Боец', [
-            { name: 'Тактическая Стрельба', desc: 'Потратьте *2 Вдохновения*, чтобы совершить прицельный выстрел или быструю очередь. Добавьте 2 кубика к своей проверке Внимания для успешного попадания, игнорируя 1 пункт защиты цели.', level: 4 },
+        { name: 'Тактическая Стрельба', desc: 'Потратьте *2 Вдохновения*, чтобы совершить прицельный выстрел или быструю очередь. Добавьте 2 кубика к своей проверке Внимания для успешного попадания, игнорируя 1 пункт защиты цели.', level: 4 },
 
         ]);
         _addCategory('Несгибаемая воля', [
@@ -151,15 +166,26 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPageIndex = index;
         pages.forEach((page, i) => page.classList.toggle('active', i === index));
         
-        if(index === 0) {
-            formTitle.textContent = "Основная информация";
-            formTitle.style.display = 'block';
-        } else {
-            formTitle.style.display = 'none';
-        }
+        if (formTitle) {
+            if(index === 0) {
+                formTitle.textContent = "Основная информация";
+                formTitle.style.display = 'block';
+            } else {
+                formTitle.textContent = ""; // Clear title on other pages
+                formTitle.style.display = 'none';
+            }
+            
+            prevBtn.disabled = index === 0;
+            nextBtn.disabled = index === pages.length - 1;
+            themeControlsContainer.style.display = index === 0 ? 'block' : 'none'; // Show theme controls only on the first page
         
-        prevBtn.disabled = index === 0;
-        nextBtn.disabled = index === pages.length - 1;
+            // Ensure jsonStyleContainer is hidden if not on the first page or theme is not custom
+            if (jsonStyleContainer) { // Check if element exists
+                if (index !== 0 || (themeSelect && themeSelect.value !== 'custom')) {
+                    jsonStyleContainer.style.display = 'none';
+                }
+            }
+        }
     }
 
     // --- ОБНОВЛЕНИЕ ПРЕВЬЮ ---
@@ -280,12 +306,74 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // --- УПРАВЛЕНИЕ СТИЛЯМИ ---
+    async function handleThemeChange(event) {
+        if (!characterCard) return; // Ensure card element exists
+        const selectedTheme = event.target.value;
+        if (selectedTheme === 'custom') { // Only show JSON input if 'Custom JSON' is selected
+            theme = selectedTheme;
+            jsonStyleContainer.style.display = 'block'; // Keep the display change here
+            applyCustomStylesFromJson();
+        } else {
+            jsonStyleContainer.style.display = 'none';
+            // Check if the selected value is a valid path (basic check)
+            if (selectedTheme && typeof selectedTheme === 'string' && selectedTheme.endsWith('.json')) {
+                // Fetch and apply styles from JSON file
+                theme = selectedTheme;
+                const response = await fetch(selectedTheme);
+                const styles = await response.json();
+                applyStylesFromJson(styles);
+            }
+        }
+    }
+
+    function applyCustomStylesFromJson() {
+        try {
+            const jsonString = jsonInputArea.value;
+            if (jsonString.trim() === '') return; // Do nothing if textarea is empty
+            const styles = JSON.parse(jsonString);
+            applyStylesFromJson(styles);
+            customStyles = styles;
+        } catch (error) {
+            console.error("Error parsing or applying custom styles JSON:", error);
+        }
+    }
     // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+
+    function setupFoldableElements() {
+        const foldableToggles = document.querySelectorAll('[data-foldable-toggle]');
+        foldableToggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const targetId = toggle.dataset.foldableToggle;
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.classList.toggle('folded');
+                }
+            });
+        });
+    }
+
     function validateAndCalculateStats(values) {
         cardWrapper.querySelector('#card-health').textContent = `× ${values.constitution * 6}`;
         cardWrapper.querySelector('#card-inspiration').textContent = `× ${values.will * 2}`;
         cardWrapper.querySelector('#card-range').textContent = `× ${values.movement * 2}`;
         cardWrapper.querySelector('#card-capacity').textContent = `× ${values.constitution * 20}`;
+    }
+
+    function applyStylesFromJson(styles) {
+        if (!characterCard) return; // Ensure card element exists
+        // Iterate over the properties in the JSON object
+        for (const key in styles) {
+            if (styles.hasOwnProperty(key)) {
+                const value = styles[key];
+                // Convert camelCase key to kebab-case CSS variable name
+                const cssVarName = '--' + key.replace(/([A-Z])/g, (g) => `-${g[0].toLowerCase()}`);
+                // Set the CSS variable on the character card element
+                characterCard.style.setProperty(cssVarName, value);
+            }
+        }
+        // Note: This function now *only* applies styles. Clearing previous inline styles
+        // happens in `handleThemeChange` before calling this function when the theme is 'custom'.
     }
 
     function collectCharacterData() {
@@ -298,6 +386,10 @@ document.addEventListener('DOMContentLoaded', () => {
             mainInfo.attributes[attrName] = parseInt(select.value);
         });
 
+        const styles = {
+            theme: theme,
+            customStyles: customStyles
+        }
         // Create a simplified structure for saving, excluding skill IDs and counters
         const simplifiedCategoriesData = skillCategories.map(cat => ({
             name: cat.name,
@@ -310,6 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return {
             mainInfo,
+            styles,
             skillCategories: simplifiedCategoriesData
         };
     }
@@ -372,6 +465,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         select.value = data.mainInfo.attributes[attrName];
                     }
                 });
+            }
+        }
+
+        if (data.styles) {
+            if (data.styles.theme == 'custom') {
+                theme = data.styles.theme;
+                customStyles = data.styles.customStyles;
+                themeSelect.value = data.styles.theme;
+                jsonInputArea.value = JSON.stringify(customStyles, null, 2);
+                handleThemeChange({ target: { value: theme } });
+            }
+            else {
+                theme = data.styles.theme;
+                themeSelect.value = theme;
+                handleThemeChange({ target: { value: theme } });
             }
         }
 

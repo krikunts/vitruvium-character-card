@@ -21,7 +21,30 @@
           <button id="upload-png-btn" class="nav-btn"><i class="fa fa-upload" aria-hidden="true"></i> PNG</button>
           <input type="file" id="upload-png-input" accept="image/png" style="display: none;">
         </div>
-        <h1 id="form-title">Создание персонажа</h1>
+        <div class="foldable-section" id="theme-controls-container">
+          <div class="foldable-content">
+            <div class="form-group" id="theme-selector">
+              <label for="style-theme">Тема:</label>
+              <select id="style-theme">
+                <option value="/themes/dark.json">Черная</option>
+                <option value="/themes/light.json">Белая</option>
+                <option value="custom">Пользовательская</option>
+              </select>
+              <div class="form-group" id="custom-style-json-container">
+                <label for="custom-style-json">JSON стили:</label>
+                <textarea id="json-style-input" rows="10" placeholder="">{
+  "bgColorPrimary": "#fff0e0", 
+  "bgColorSecondary": "#f0e0d0",
+  "textColorPrimary": "#701e12", 
+  "textColorSecondary": "#4a4a4a",
+  "delimiterColor": "#cccccc",
+  "accentColor": "#ad0021"
+}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <h2 id="form-title">Создание персонажа</h2>
         <div id="form-wizard">
           <!-- Сюда JS будет динамически добавлять страницы -->
         </div>
@@ -48,7 +71,7 @@
           <div class="form-group"><label for="char-full-name">Имя</label><input type="text" id="char-full-name" value="Сара Коннор"></div>
         </div>
         <div class="form-section">
-          <h2>Характеристики</h2>
+          <h3>Характеристики</h3>
           <div id="attributes-validation-error" class="error-message hidden"></div>
           <div class="form-grid">
             <div class="form-group">
@@ -132,7 +155,7 @@
           </div>
         </div>
         <div class="form-section">
-          <h2>Навыки в этой категории</h2>
+          <h3>Навыки</h3>
           <div class="skills-in-category-container"></div>
           <button class="add-skill-btn"><i class="fa-solid fa-plus-circle"></i> Добавить навык</button>
         </div>
