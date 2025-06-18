@@ -1,8 +1,8 @@
+import { handleThemeChange, applyCustomStylesFromJson, applyStylesFromJson, getTheme, getCustomStyles, setTheme, setCustomStyles } from './themeManager.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- ГЛОБАЛЬНЫЕ ДАННЫЕ И СОСТОЯНИЕ ---
     let skillCategories = [];
-    let theme = '/themes/dark.json';
-    let customStyles = {};
     let nextCategoryId = 0;
     let nextSkillId = 0;
     let currentPageIndex = 0;
@@ -59,12 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (prevBtn) prevBtn.addEventListener('click', () => navigate(-1));
         if (nextBtn) nextBtn.addEventListener('click', () => navigate(1));
         
-        if (themeSelect) themeSelect.addEventListener('change', handleThemeChange);
-        if (jsonInputArea) jsonInputArea.addEventListener('input', applyCustomStylesFromJson); // Listen for input on the JSON area
+        if (themeSelect) themeSelect.addEventListener('change', (event) => handleThemeChange(event, characterCard, jsonStyleContainer, themeSelect, jsonInputArea, applyStylesFromJson));
+        if (jsonInputArea) jsonInputArea.addEventListener('input', () => applyCustomStylesFromJson(jsonInputArea, characterCard, applyStylesFromJson)); // Listen for input on the JSON area
         
         if (jsonStyleContainer) jsonStyleContainer.style.display = 'none'; // Hide JSON input initially
 
-        setupFoldableElements(); // Setup foldable elements on init
         loadExampleData(); // Or load from local storage if implemented later
         rebuildCategoryPages();
         showPage(0);
@@ -305,75 +304,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    
-    // --- УПРАВЛЕНИЕ СТИЛЯМИ ---
-    async function handleThemeChange(event) {
-        if (!characterCard) return; // Ensure card element exists
-        const selectedTheme = event.target.value;
-        if (selectedTheme === 'custom') { // Only show JSON input if 'Custom JSON' is selected
-            theme = selectedTheme;
-            jsonStyleContainer.style.display = 'block'; // Keep the display change here
-            applyCustomStylesFromJson();
-        } else {
-            jsonStyleContainer.style.display = 'none';
-            // Check if the selected value is a valid path (basic check)
-            if (selectedTheme && typeof selectedTheme === 'string' && selectedTheme.endsWith('.json')) {
-                // Fetch and apply styles from JSON file
-                theme = selectedTheme;
-                const response = await fetch(selectedTheme);
-                const styles = await response.json();
-                applyStylesFromJson(styles);
-            }
-        }
-    }
 
-    function applyCustomStylesFromJson() {
-        try {
-            const jsonString = jsonInputArea.value;
-            if (jsonString.trim() === '') return; // Do nothing if textarea is empty
-            const styles = JSON.parse(jsonString);
-            applyStylesFromJson(styles);
-            customStyles = styles;
-        } catch (error) {
-            console.error("Error parsing or applying custom styles JSON:", error);
-        }
-    }
     // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-
-    function setupFoldableElements() {
-        const foldableToggles = document.querySelectorAll('[data-foldable-toggle]');
-        foldableToggles.forEach(toggle => {
-            toggle.addEventListener('click', () => {
-                const targetId = toggle.dataset.foldableToggle;
-                const targetElement = document.getElementById(targetId);
-                if (targetElement) {
-                    targetElement.classList.toggle('folded');
-                }
-            });
-        });
-    }
 
     function validateAndCalculateStats(values) {
         cardWrapper.querySelector('#card-health').textContent = `× ${values.constitution * 6}`;
         cardWrapper.querySelector('#card-inspiration').textContent = `× ${values.will * 2}`;
         cardWrapper.querySelector('#card-range').textContent = `× ${values.movement * 2}`;
         cardWrapper.querySelector('#card-capacity').textContent = `× ${values.constitution * 20}`;
-    }
-
-    function applyStylesFromJson(styles) {
-        if (!characterCard) return; // Ensure card element exists
-        // Iterate over the properties in the JSON object
-        for (const key in styles) {
-            if (styles.hasOwnProperty(key)) {
-                const value = styles[key];
-                // Convert camelCase key to kebab-case CSS variable name
-                const cssVarName = '--' + key.replace(/([A-Z])/g, (g) => `-${g[0].toLowerCase()}`);
-                // Set the CSS variable on the character card element
-                characterCard.style.setProperty(cssVarName, value);
-            }
-        }
-        // Note: This function now *only* applies styles. Clearing previous inline styles
-        // happens in `handleThemeChange` before calling this function when the theme is 'custom'.
     }
 
     function collectCharacterData() {
@@ -387,8 +325,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const styles = {
-            theme: theme,
-            customStyles: customStyles
+            theme: getTheme(),
+            customStyles: getCustomStyles()
         }
         // Create a simplified structure for saving, excluding skill IDs and counters
         const simplifiedCategoriesData = skillCategories.map(cat => ({
@@ -470,16 +408,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (data.styles) {
             if (data.styles.theme == 'custom') {
-                theme = data.styles.theme;
-                customStyles = data.styles.customStyles;
+                setTheme(data.styles.theme);
+                setCustomStyles(data.styles.customStyles);
                 themeSelect.value = data.styles.theme;
-                jsonInputArea.value = JSON.stringify(customStyles, null, 2);
-                handleThemeChange({ target: { value: theme } });
+                jsonInputArea.value = JSON.stringify(data.styles.customStyles, null, 2);
+                handleThemeChange({ target: { value: data.styles.theme } }, characterCard, jsonStyleContainer, themeSelect, jsonInputArea, applyStylesFromJson);
             }
             else {
-                theme = data.styles.theme;
-                themeSelect.value = theme;
-                handleThemeChange({ target: { value: theme } });
+                setTheme(data.styles.theme);
+                themeSelect.value = data.styles.theme;
+                handleThemeChange({ target: { value: data.styles.theme } }, characterCard, jsonStyleContainer, themeSelect, jsonInputArea, applyStylesFromJson);
             }
         }
 
