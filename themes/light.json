@@ -1,8 +1,14 @@
 {
   "bgColorPrimary": "#ffffff",
   "bgColorSecondary": "#f0f0f0",
-  "textColorPrimary": "#1a1a1a",
-  "textColorSecondary": "#666666",
+  "textColorName": "#1a1a1a",
+  "iconColorHeader": "#333333",
+  "iconColorAttributes": "#333333",
+  "textColorAttributes": "#606060",
+  "textColorCategory": "#333333",
+  "textColorSkillName": "#404040",
+  "textColorSkillDescription": "#606060",
+  "dotsColor": "#333333",
   "delimiterColor": "#cccccc",
-  "accentColor": "#1a1a1a"
+  "fontFamily": "'Roboto Condensed', sans-serif"
 }

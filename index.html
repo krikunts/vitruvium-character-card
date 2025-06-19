@@ -21,26 +21,30 @@
           <button id="upload-png-btn" class="nav-btn"><i class="fa fa-upload" aria-hidden="true"></i> PNG</button>
           <input type="file" id="upload-png-input" accept="image/png" style="display: none;">
         </div>
-        <div class="foldable-section" id="theme-controls-container">
-          <div class="foldable-content">
-            <div class="form-group" id="theme-selector">
-              <label for="style-theme">Тема:</label>
-              <select id="style-theme">
-                <option value="/themes/dark.json">Черная</option>
-                <option value="/themes/light.json">Белая</option>
-                <option value="custom">Пользовательская</option>
-              </select>
-              <div class="form-group" id="custom-style-json-container">
-                <label for="custom-style-json">JSON стили:</label>
-                <textarea id="json-style-input" rows="10" placeholder="">{
-  "bgColorPrimary": "#fff0e0", 
-  "bgColorSecondary": "#f0e0d0",
-  "textColorPrimary": "#701e12", 
-  "textColorSecondary": "#4a4a4a",
-  "delimiterColor": "#cccccc",
-  "accentColor": "#ad0021"
+        <div id="theme-controls-container">
+          <div class="form-group" id="theme-selector">
+            <label for="style-theme">Тема:</label>
+            <select id="style-theme">
+              <option value="/themes/dark.json">Черная</option>
+              <option value="/themes/light.json">Белая</option>
+              <option value="custom">Пользовательская</option>
+            </select>
+            <div class="form-group" id="custom-style-json-container">
+              <label for="json-style-input">JSON стили:</label>
+              <textarea id="json-style-input" rows="14" placeholder="">{
+  "bgColorPrimary": "#0f1a17",
+  "bgColorSecondary": "#1a2c28",
+  "textColorName": "#d8fff4",
+  "iconColorHeader": "#aaffcc",
+  "iconColorAttributes": "#aaffcc",
+  "textColorAttributes": "#b3e6d5",
+  "textColorCategory": "#ccffee",
+  "textColorSkillName": "#a0ffe0",
+  "textColorSkillDescription": "#99ddcc",
+  "dotsColor": "#80ffcc",
+  "delimiterColor": "#55aa99",
+  "fontFamily": "'Roboto Condensed', sans-serif"
 }</textarea>
-              </div>
             </div>
           </div>
         </div>
