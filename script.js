@@ -1,7 +1,8 @@
 import { handleThemeChange, applyCustomStylesFromJson, applyStylesFromJson, getTheme, getCustomStyles, setTheme, setCustomStyles } from './themeManager.js';
-import { dataURLtoUint8Array, uint8ArrayToDataURL, extractChunks, encodeChunks, createTextChunk, extractJsonFromChunks } from './pngMeta.js';
 import { addCategoryAndNavigate, rebuildCategoryPages, navigate, showPage, createSkillFormBlock } from './formWizard.js';
 import { dataManager } from './dataManager.js';
+import { updateStaticInfo, renderSkillsOnCard } from './uiRenderer.js';
+import { saveDataToJson, loadDataFromJson, saveCardAsPng, loadCardFromPng } from './fileManager.js';
 
 // Constants
 const exampleDataPath = '/data/sarah-connor.json';
@@ -21,8 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- ЭЛЕМЕНТЫ DOM ---
     const cardWrapper = document.getElementById('character-card-wrapper');
     const cardNode = templates.mainCard.content.cloneNode(true);
-    cardWrapper.appendChild(cardNode);
-
     const formWizard = document.getElementById('form-wizard');
     const form = document.querySelector('.form-container');
     const downloadBtn = document.getElementById('download-btn');
@@ -34,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadFileInput = document.getElementById('load-file-input');
     const uploadPngBtn = document.getElementById('upload-png-btn');
     const uploadPngInput = document.getElementById('upload-png-input');    
-    const characterCard = cardWrapper.querySelector('.character-card'); // Get the actual card element
     const themeSelect = document.getElementById('style-theme'); // Get the theme dropdown
     const jsonStyleContainer = document.getElementById('custom-style-json-container');
     const themeControlsContainer = document.getElementById('theme-controls-container'); // Get the theme controls container
@@ -43,8 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ИНИЦИАЛИЗАЦИЯ ---
     function init() {
-        const formWizard = document.getElementById('form-wizard');
-        
+        cardWrapper.appendChild(cardNode);
+        // Fix: characterCard must be selected after cardNode is appended
+        const characterCard = cardWrapper.querySelector('.character-card');
         const mainInfoPage = templates.mainInfoPage.content.cloneNode(true);
         formWizard.appendChild(mainInfoPage);
         
@@ -55,14 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
             updateUI,
             formWizard
         ));
-        saveBtn.addEventListener('click', saveDataToJson);
-        loadBtn.addEventListener('click', () => loadFileInput.click());
-        loadFileInput.addEventListener('change', loadDataFromJson);
-        uploadPngBtn.addEventListener('click', () => uploadPngInput.click());
-        uploadPngInput.addEventListener('change', uploadCardFromPng);
+        // Use event delegation for input and click events
         form.addEventListener('input', handleFormInput);
-        form.addEventListener('click', handleFormClick);        
-        if (downloadBtn) downloadBtn.addEventListener('click', downloadCard); // check if button exists
+        form.addEventListener('click', handleFormClick);
+        if (downloadBtn) downloadBtn.addEventListener('click', downloadCard);
+        if (saveBtn) saveBtn.addEventListener('click', saveDataToJsonHandler);
+        if (loadBtn) loadBtn.addEventListener('click', () => loadFileInput.click());
+        if (loadFileInput) loadFileInput.addEventListener('change', loadDataFromJsonHandler);
+        if (uploadPngBtn) uploadPngBtn.addEventListener('click', () => uploadPngInput.click());
+        if (uploadPngInput) uploadPngInput.addEventListener('change', uploadCardFromPng);
         if (prevBtn) prevBtn.addEventListener('click', () => {
             dataManager.setCurrentPageIndex(navigate(
                 dataManager.getCurrentPageIndex(),
@@ -77,13 +77,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 (i) => showPage(i, formWizard, formTitle, prevBtn, nextBtn, themeControlsContainer, jsonStyleContainer, themeSelect)
             ));
         });
-        
         if (themeSelect) themeSelect.addEventListener('change', (event) => handleThemeChange(event, characterCard, jsonStyleContainer, themeSelect, jsonInputArea, applyStylesFromJson));
-        if (jsonInputArea) jsonInputArea.addEventListener('input', () => applyCustomStylesFromJson(jsonInputArea, characterCard, applyStylesFromJson)); // Listen for input on the JSON area
-        
-        if (jsonStyleContainer) jsonStyleContainer.style.display = 'none'; // Hide JSON input initially
-
-        loadExampleData(); // Or load from local storage if implemented later
+        if (jsonInputArea) jsonInputArea.addEventListener('input', () => applyCustomStylesFromJson(jsonInputArea, characterCard, applyStylesFromJson));
+        if (jsonStyleContainer) jsonStyleContainer.style.display = 'none';
+        loadExampleData();
         rebuildCategoryPages(dataManager.getCategories(), templates, formWizard);
         showPage(0, formWizard, formTitle, prevBtn, nextBtn, themeControlsContainer, jsonStyleContainer, themeSelect);
         updateUI();
@@ -102,51 +99,93 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ОБНОВЛЕНИЕ ПРЕВЬЮ ---
     function updateUI() {
-        updateStaticInfo();
-        renderSkillsOnCard();
+        updateStaticInfo(cardWrapper, dataManager.mainInfo || {});
+        renderSkillsOnCard(cardWrapper, dataManager.getCategories(), templates);
     }
 
-    function updateStaticInfo() {
-        const fullName = document.getElementById('char-full-name').value.toUpperCase().trim();
-        cardWrapper.querySelector('#card-full-name').textContent = fullName;
-        
-        const attributeValues = {};
-        document.querySelectorAll('.attribute-select').forEach(select => {
-            const attrName = select.id.split('-')[1];
-            const value = select.value;
-            cardWrapper.querySelector(`#card-attr-${attrName}`).textContent = value;
-            attributeValues[attrName] = parseInt(value);
-        });
-        
-        calculateStats(attributeValues);
+    function collectCharacterData() {
+        // Use dataManager as the source of truth
+        const mainInfo = dataManager.getMainInfo();
+        const styles = {
+            theme: getTheme(),
+            customStyles: getCustomStyles()
+        };
+        const simplifiedCategoriesData = dataManager.getCategories().map(cat => ({
+            name: cat.name,
+            skills: cat.skills.map(skill => ({
+                name: skill.name,
+                description: skill.description,
+                level: skill.level
+            }))
+        }));
+        return {
+            mainInfo,
+            styles,
+            skillCategories: simplifiedCategoriesData
+        };
     }
 
-    function renderSkillsOnCard() {
-        const cardSkillsWrapper = cardWrapper.querySelector('#card-skills-list-wrapper');
-        cardSkillsWrapper.innerHTML = '';
-        dataManager.getCategories().forEach(cat => {
-            if (cat.skills.length === 0 && !cat.name) return;
-            const catCardNode = templates.categoryCard.content.cloneNode(true);
-            catCardNode.querySelector('.category-title').textContent = cat.name || 'Без категории';
+    function saveDataToJsonHandler() {
+        const characterData = collectCharacterData();
+        const charName = (dataManager.getMainInfo().name || 'character').toLowerCase().replace(/ /g, '-');
+        saveDataToJson(characterData, `${charName}-data.json`);
+    }
 
-            const skillsDisplayContainer = catCardNode.querySelector('.skills-in-category-display-container');
-            cat.skills.forEach(skill => {
-                const skillCardNode = templates.skillCard.content.cloneNode(true);
-                skillCardNode.querySelector('.skill-name').textContent = skill.name;
-                const formattedDescription = skill.description.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
-                skillCardNode.querySelector('.skill-description').innerHTML = formattedDescription;
-                
-                const dotsContainer = skillCardNode.querySelector('.skill-dots');
-                dotsContainer.innerHTML = '';
-                for (let i = 0; i < 5; i++) {
-                    const dot = document.createElement('span');
-                    dot.classList.add('dot', i < skill.level ? 'filled' : 'empty');
-                    dotsContainer.appendChild(dot);
-                }
-                skillsDisplayContainer.appendChild(skillCardNode);
-            });
-            cardSkillsWrapper.appendChild(catCardNode);
+    function loadDataFromJsonHandler(event) {
+        const file = event.target.files[0];
+        loadDataFromJson(file, applyLoadedData, (error) => {
+            console.error('Error parsing JSON:', error);
+            alert('Ошибка при загрузке файла. Убедитесь, что это корректный JSON файл.');
         });
+        // Clear the file input value so the change event fires even if the same file is selected again
+        loadFileInput.value = '';
+    }
+
+    function downloadCard() {
+        const characterData = collectCharacterData();
+        const charName = (dataManager.getMainInfo().name || 'character').toLowerCase().replace(/ /g, '-');
+        // Fix: get characterCard from DOM at call time
+        const characterCard = cardWrapper.querySelector('.character-card');
+        saveCardAsPng(characterCard, characterData, `${charName}-card.png`, pngJsonChunkKey);
+    }
+
+    function uploadCardFromPng(event) {
+        const file = event.target.files[0];
+        loadCardFromPng(file, pngJsonChunkKey, applyLoadedData, (error) => {
+            if (error.message && error.message.includes('No character data')) {
+                alert('В этом PNG файле не найдено данных персонажа.');
+            } else {
+                alert('Ошибка при обработке PNG файла. Убедитесь, что это корректный PNG файл.');
+            }
+            console.error('Error processing PNG:', error);
+        });
+        uploadPngInput.value = '';
+    }
+
+    // --- LOAD DATA INTO APP ---
+    function applyLoadedData(data) {
+        // Update dataManager and UI from loaded data
+        dataManager.updateFromLoadedData(data);
+        // Apply theme/styles if present
+        if (data.styles) {
+            if (data.styles.theme === 'custom') {
+                setTheme(data.styles.theme);
+                setCustomStyles(data.styles.customStyles);
+                if (themeSelect) themeSelect.value = data.styles.theme;
+                if (jsonInputArea) jsonInputArea.value = JSON.stringify(data.styles.customStyles, null, 2);
+                // characterCard must be selected after cardNode is appended
+                const characterCard = cardWrapper.querySelector('.character-card');
+                handleThemeChange({ target: { value: data.styles.theme } }, characterCard, jsonStyleContainer, themeSelect, jsonInputArea, applyStylesFromJson);
+            } else {
+                setTheme(data.styles.theme);
+                if (themeSelect) themeSelect.value = data.styles.theme;
+                const characterCard = cardWrapper.querySelector('.character-card');
+                handleThemeChange({ target: { value: data.styles.theme } }, characterCard, jsonStyleContainer, themeSelect, jsonInputArea, applyStylesFromJson);
+            }
+        }
+        rebuildCategoryPages(dataManager.getCategories(), templates, formWizard);
+        showPage(0, formWizard, formTitle, prevBtn, nextBtn, themeControlsContainer, jsonStyleContainer, themeSelect);
+        updateUI();
     }
 
     // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
@@ -156,7 +195,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!page) return;
         
         if (page.dataset.pageType === 'main') {
-            updateUI(); // Обновляем все, если меняются статы
+            // Update main info in dataManager
+            if (target.id === 'char-full-name') {
+                dataManager.mainInfo = dataManager.mainInfo || {};
+                dataManager.mainInfo.name = target.value;
+            } else if (target.classList.contains('attribute-select')) {
+                dataManager.mainInfo = dataManager.mainInfo || {};
+                dataManager.mainInfo.attributes = dataManager.mainInfo.attributes || {};
+                const attrName = target.id.split('-')[1];
+                dataManager.mainInfo.attributes[attrName] = parseInt(target.value);
+            }
+            updateUI();
             return;
         }
 
@@ -185,9 +234,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-        renderSkillsOnCard(); // Обновляем только карточку-превью, чтобы не терять фокус
+        updateUI();
     }
-    
+
     function handleFormClick(e) {
         const button = e.target.closest('button');
         if (!button) return;
@@ -220,180 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
             skillBlock.remove();
             updateUI();
         }
-    }
-
-    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-
-    function calculateStats(values) {
-        cardWrapper.querySelector('#card-health').textContent = `× ${values.constitution * 6}`;
-        cardWrapper.querySelector('#card-inspiration').textContent = `× ${values.will * 2}`;
-        cardWrapper.querySelector('#card-range').textContent = `× ${values.movement * 2}`;
-        cardWrapper.querySelector('#card-capacity').textContent = `× ${values.constitution * 20}`;
-    }
-
-    function collectCharacterData() {
-        const mainInfo = {
-            name: document.getElementById('char-full-name').value,
-            attributes: {}
-        };
-        document.querySelectorAll('.attribute-select').forEach(select => {
-            const attrName = select.id.split('-')[1];
-            mainInfo.attributes[attrName] = parseInt(select.value);
-        });
-
-        const styles = {
-            theme: getTheme(),
-            customStyles: getCustomStyles()
-        }
-        // Create a simplified structure for saving, excluding skill IDs and counters
-        const simplifiedCategoriesData = dataManager.getCategories().map(cat => ({
-            name: cat.name,
-            skills: cat.skills.map(skill => ({
-                name: skill.name,
-                description: skill.description,
-                level: skill.level
-            }))
-        }));
-
-        return {
-            mainInfo,
-            styles,
-            skillCategories: simplifiedCategoriesData
-        };
-    }
-
-    function saveDataToJson() {
-        const characterData = collectCharacterData();
-        const jsonData = JSON.stringify(characterData, null, 2);
-        const blob = new Blob([jsonData], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-
-        const link = document.createElement('a');
-        const charName = document.getElementById('char-full-name').value.toLowerCase().replace(/ /g, '-') || 'character';
-        link.download = `${charName}-data.json`;
-        link.href = url;
-        link.click();
-
-        URL.revokeObjectURL(url); // Clean up the URL object
-    }
-
-    function loadDataFromJson(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const loadedData = JSON.parse(e.target.result);
-                applyLoadedData(loadedData);
-            } catch (error) {
-                console.error("Error parsing JSON:", error);
-                alert("Ошибка при загрузке файла. Убедитесь, что это корректный JSON файл.");
-            } finally {
-                // Clear the file input value so the change event fires even if the same file is selected again
-                loadFileInput.value = '';
-            }
-        };
-        reader.readAsText(file);
-    }
-
-    function applyLoadedData(data) {
-        // Load main info
-        if (data.mainInfo) {
-            const fullNameInput = document.getElementById('char-full-name');
-            if (data.mainInfo.name || data.mainInfo.nickname || data.mainInfo.surname) {
-                // Backward compatibility: concatenate old fields
-                fullNameInput.value = [
-                    data.mainInfo.name || '',
-                    data.mainInfo.nickname || '',
-                    data.mainInfo.surname || ''
-                ].join(' ').trim();
-            } else if (data.mainInfo.name !== undefined) {
-                // Load new single name field
-                fullNameInput.value = data.mainInfo.name || '';
-            }
-
-            if (data.mainInfo.attributes) {
-                document.querySelectorAll('.attribute-select').forEach(select => {
-                    const attrName = select.id.split('-')[1];
-                    if (data.mainInfo.attributes[attrName] !== undefined) {
-                        select.value = data.mainInfo.attributes[attrName];
-                    }
-                });
-            }
-        }
-
-        if (data.styles) {
-            if (data.styles.theme == 'custom') {
-                setTheme(data.styles.theme);
-                setCustomStyles(data.styles.customStyles);
-                themeSelect.value = data.styles.theme;
-                jsonInputArea.value = JSON.stringify(data.styles.customStyles, null, 2);
-                handleThemeChange({ target: { value: data.styles.theme } }, characterCard, jsonStyleContainer, themeSelect, jsonInputArea, applyStylesFromJson);
-            }
-            else {
-                setTheme(data.styles.theme);
-                themeSelect.value = data.styles.theme;
-                handleThemeChange({ target: { value: data.styles.theme } }, characterCard, jsonStyleContainer, themeSelect, jsonInputArea, applyStylesFromJson);
-            }
-        }
-        dataManager.updateFromLoadedData(data); // Update data manager with loaded categories and skills
-        rebuildCategoryPages(dataManager.getCategories(), templates, formWizard);
-        showPage(0, formWizard, formTitle, prevBtn, nextBtn, themeControlsContainer, jsonStyleContainer, themeSelect);
-        updateUI();
-    }
-
-    function downloadCard() {
-        html2canvas(characterCard, { scale: 2, backgroundColor: null, useCORS: true })
-            .then(canvas => {
-                const characterData = collectCharacterData();
-                const jsonData = JSON.stringify(characterData);
-                const dataUrl = canvas.toDataURL('image/png');
-                const originalPngBytes = dataURLtoUint8Array(dataUrl);
-                const chunks = extractChunks(originalPngBytes);
-                // Use utility to create tEXt chunk
-                const tEXtChunk = createTextChunk(pngJsonChunkKey, jsonData);
-                // Insert before IEND
-                const iendIndex = chunks.findIndex(chunk => chunk.name === 'IEND');
-                if (iendIndex !== -1) {
-                    chunks.splice(iendIndex, 0, tEXtChunk);
-                } else {
-                    chunks.push(tEXtChunk);
-                }
-                const newPngBytes = encodeChunks(chunks);
-                const newPngDataUrl = uint8ArrayToDataURL(newPngBytes, 'image/png');
-                const link = document.createElement('a');
-                const charName = document.getElementById('char-full-name').value.toLowerCase().replace(/ /g, '-') || 'character';
-                link.download = `${charName}-card.png`;
-                link.href = newPngDataUrl;
-                link.click();
-            });
-    }
-
-    function uploadCardFromPng(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const dataUrl = e.target.result;
-            try {
-                const pngBytes = dataURLtoUint8Array(dataUrl);
-                const chunks = extractChunks(pngBytes);
-                // Use utility to extract JSON from tEXt chunk
-                const foundData = extractJsonFromChunks(chunks, pngJsonChunkKey);
-                if (foundData) {
-                    applyLoadedData(foundData);
-                } else {
-                    alert("В этом PNG файле не найдено данных персонажа.");
-                }
-            } catch (error) {
-                console.error("Error processing PNG:", error);
-                alert("Ошибка при обработке PNG файла. Убедитесь, что это корректный PNG файл.");
-            } finally {
-                uploadPngInput.value = '';
-            }
-        };
-        reader.readAsDataURL(file);
     }
 
     // --- ЗАПУСК ---

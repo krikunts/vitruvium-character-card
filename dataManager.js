@@ -7,6 +7,7 @@ class DataManager {
         this.nextCategoryId = 0;
         this.nextSkillId = 0;
         this.currentPageIndex = 0;
+        this.mainInfo = { name: '', attributes: {} };
     }
 
     reset() {
@@ -14,8 +15,16 @@ class DataManager {
         this.nextCategoryId = 0;
         this.nextSkillId = 0;
         this.currentPageIndex = 0;
+        this.mainInfo = { name: '', attributes: {} };
     }
 
+    setMainInfo(mainInfo) {
+        this.mainInfo = mainInfo;
+    }
+
+    getMainInfo() {
+        return this.mainInfo;
+    }
 
     addCategory(name, skills = []) {
         const newCategory = { id: this.nextCategoryId++, name, skills: [] };
@@ -49,8 +58,15 @@ class DataManager {
 
     updateFromLoadedData(data) {
         // For use in applyLoadedData
+        if (data.mainInfo) {
+            this.mainInfo = {
+                name: data.mainInfo.name || '',
+                attributes: { ...data.mainInfo.attributes }
+            };
+        } else {
+            this.mainInfo = { name: '', attributes: {} };
+        }
         if (Array.isArray(data.skillCategories)) {
-            this.skillCategories = data.skillCategories;
             let currentMaxCategoryId = -1;
             let currentMaxSkillId = -1;
             this.skillCategories = data.skillCategories.map(cat => {
