@@ -65,3 +65,45 @@ export function renderSkillsOnCard(cardWrapper, categories, templates) {
         cardSkillsWrapper.appendChild(renderCategoryCard(cat, templates));
     });
 }
+
+export function updateUI(cardWrapper, dataManager, templates) {
+    updateStaticInfo(cardWrapper, dataManager.mainInfo || {});
+    renderSkillsOnCard(cardWrapper, dataManager.getCategories(), templates);
+}
+
+export function populateFormFieldsFromDataManager(dataManager, formWizard) {
+    // Main Info
+    const mainInfo = dataManager.getMainInfo() || {};
+    const mainInfoPage = formWizard.querySelector('.form-page[data-page-type="main"]');
+    if (mainInfoPage) {
+        const nameInput = mainInfoPage.querySelector('#char-full-name');
+        if (nameInput) nameInput.value = mainInfo.name || '';
+        if (mainInfo.attributes) {
+            for (const [attr, value] of Object.entries(mainInfo.attributes)) {
+                const attrInput = mainInfoPage.querySelector(`#attr-${attr}`);
+                if (attrInput) attrInput.value = value;
+            }
+        }
+    }
+    // Categories & Skills
+    const categories = dataManager.getCategories();
+    categories.forEach(category => {
+        const catPage = formWizard.querySelector(`.form-page[data-page-type="category"][data-category-id="${category.id}"]`);
+        if (catPage) {
+            const catNameInput = catPage.querySelector('.category-name-input');
+            if (catNameInput) catNameInput.value = category.name;
+            // Skills
+            category.skills.forEach(skill => {
+                const skillBlock = catPage.querySelector(`.skill-form-block[data-skill-id="${skill.id}"]`);
+                if (skillBlock) {
+                    const skillNameInput = skillBlock.querySelector('.skill-name-input');
+                    if (skillNameInput) skillNameInput.value = skill.name;
+                    const skillDescInput = skillBlock.querySelector('.skill-desc-input');
+                    if (skillDescInput) skillDescInput.value = skill.description;
+                    const skillLevelInput = skillBlock.querySelector('.skill-level-input');
+                    if (skillLevelInput) skillLevelInput.value = skill.level;
+                }
+            });
+        }
+    });
+}

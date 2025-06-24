@@ -1,43 +1,39 @@
 import { handleThemeChange, applyCustomStylesFromJson, applyStylesFromJson, getTheme, getCustomStyles, setTheme, setCustomStyles } from './themeManager.js';
 import { addCategoryAndNavigate, rebuildCategoryPages, navigate, showPage, createSkillFormBlock } from './formWizard.js';
 import { dataManager } from './dataManager.js';
-import { updateStaticInfo, renderSkillsOnCard } from './uiRenderer.js';
+import { updateUI, populateFormFieldsFromDataManager } from './uiRenderer.js';
 import { saveDataToJson, loadDataFromJson, saveCardAsPng, loadCardFromPng } from './fileManager.js';
-
-// Constants
-const exampleDataPath = '/data/sarah-connor.json';
-const pngJsonChunkKey = 'VitruviumData';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- ШАБЛОНЫ ---
     const templates = {
-        mainCard: document.getElementById('main-card-template'),
-        mainInfoPage: document.getElementById('main-info-page-template'),
-        categoryPage: document.getElementById('skill-category-page-template'),
-        skillForm: document.getElementById('skill-form-template'),
-        categoryCard: document.getElementById('skill-category-card-template'),
-        skillCard: document.getElementById('skill-card-template')
+        mainCard: $('#main-card-template')[0],
+        mainInfoPage: $('#main-info-page-template')[0],
+        categoryPage: $('#skill-category-page-template')[0],
+        skillForm: $('#skill-form-template')[0],
+        categoryCard: $('#skill-category-card-template')[0],
+        skillCard: $('#skill-card-template')[0]
     };
 
     // --- ЭЛЕМЕНТЫ DOM ---
-    const cardWrapper = document.getElementById('character-card-wrapper');
-    const cardNode = templates.mainCard.content.cloneNode(true);
-    const formWizard = document.getElementById('form-wizard');
-    const form = document.querySelector('.form-container');
-    const downloadBtn = document.getElementById('download-btn');
-    const prevBtn = document.getElementById('prev-btn');
-    const nextBtn = document.getElementById('next-btn');
-    const addCategoryBtn = document.getElementById('add-category-btn');
-    const saveBtn = document.getElementById('save-btn');
-    const loadBtn = document.getElementById('load-btn');
-    const loadFileInput = document.getElementById('load-file-input');
-    const uploadPngBtn = document.getElementById('upload-png-btn');
-    const uploadPngInput = document.getElementById('upload-png-input');    
-    const themeSelect = document.getElementById('style-theme'); // Get the theme dropdown
-    const jsonStyleContainer = document.getElementById('custom-style-json-container');
-    const themeControlsContainer = document.getElementById('theme-controls-container'); // Get the theme controls container
-    const jsonInputArea = document.getElementById('json-style-input'); // Get the JSON textarea
-    const formTitle = document.getElementById('form-title');
+    const cardWrapper = $('#character-card-wrapper')[0];
+    const cardNode = $('#main-card-template')[0].content.cloneNode(true);
+    const formWizard = $('#form-wizard')[0];
+    const form = $('.form-container')[0];
+    const downloadBtn = $('#download-btn')[0];
+    const prevBtn = $('#prev-btn')[0];
+    const nextBtn = $('#next-btn')[0];
+    const addCategoryBtn = $('#add-category-btn')[0];
+    const saveBtn = $('#save-btn')[0];
+    const loadBtn = $('#load-btn')[0];
+    const loadFileInput = $('#load-file-input')[0];
+    const uploadPngBtn = $('#upload-png-btn')[0];
+    const uploadPngInput = $('#upload-png-input')[0];
+    const themeSelect = $('#style-theme')[0];
+    const jsonStyleContainer = $('#custom-style-json-container')[0];
+    const themeControlsContainer = $('#theme-controls-container')[0];
+    const jsonInputArea = $('#json-style-input')[0];
+    const formTitle = $('#form-title')[0];
 
     // --- ИНИЦИАЛИЗАЦИЯ ---
     function init() {
@@ -51,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
             (name, skills) => dataManager.addCategory(name, skills),
             () => rebuildCategoryPages(dataManager.getCategories(), templates, formWizard),
             (i) => showPage(i, formWizard, formTitle, prevBtn, nextBtn, themeControlsContainer, jsonStyleContainer, themeSelect),
-            updateUI,
+            () => updateUI(cardWrapper, dataManager, templates),
             formWizard
         ));
         // Use event delegation for input and click events
@@ -83,10 +79,11 @@ document.addEventListener('DOMContentLoaded', () => {
         loadExampleData();
         rebuildCategoryPages(dataManager.getCategories(), templates, formWizard);
         showPage(0, formWizard, formTitle, prevBtn, nextBtn, themeControlsContainer, jsonStyleContainer, themeSelect);
-        updateUI();
+        updateUI(cardWrapper, dataManager, templates);
     }
 
     async function loadExampleData() {
+        const exampleDataPath = '/data/sarah-connor.json';
         try {
             const response = await fetch(exampleDataPath);
             if (!response.ok) throw new Error(`Failed to load ${exampleDataPath}`);
@@ -95,12 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error loading example data:', error);
         }
-    }
-
-    // --- ОБНОВЛЕНИЕ ПРЕВЬЮ ---
-    function updateUI() {
-        updateStaticInfo(cardWrapper, dataManager.mainInfo || {});
-        renderSkillsOnCard(cardWrapper, dataManager.getCategories(), templates);
     }
 
     function collectCharacterData() {
@@ -146,12 +137,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const charName = (dataManager.getMainInfo().name || 'character').toLowerCase().replace(/ /g, '-');
         // Fix: get characterCard from DOM at call time
         const characterCard = cardWrapper.querySelector('.character-card');
-        saveCardAsPng(characterCard, characterData, `${charName}-card.png`, pngJsonChunkKey);
+        saveCardAsPng(characterCard, characterData, `${charName}-card.png`);
     }
 
     function uploadCardFromPng(event) {
         const file = event.target.files[0];
-        loadCardFromPng(file, pngJsonChunkKey, applyLoadedData, (error) => {
+        loadCardFromPng(file, applyLoadedData, (error) => {
             if (error.message && error.message.includes('No character data')) {
                 alert('В этом PNG файле не найдено данных персонажа.');
             } else {
@@ -185,7 +176,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         rebuildCategoryPages(dataManager.getCategories(), templates, formWizard);
         showPage(0, formWizard, formTitle, prevBtn, nextBtn, themeControlsContainer, jsonStyleContainer, themeSelect);
-        updateUI();
+        updateUI(cardWrapper, dataManager, templates);
+        populateFormFieldsFromDataManager(dataManager, formWizard); // Ensure form fields reflect loaded data
     }
 
     // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
@@ -205,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const attrName = target.id.split('-')[1];
                 dataManager.mainInfo.attributes[attrName] = parseInt(target.value);
             }
-            updateUI();
+            updateUI(cardWrapper, dataManager, templates);
             return;
         }
 
@@ -234,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-        updateUI();
+        updateUI(cardWrapper, dataManager, templates);
     }
 
     function handleFormClick(e) {
@@ -254,20 +246,20 @@ document.addEventListener('DOMContentLoaded', () => {
             dataManager.setCurrentPageIndex(newPageIndex);
             rebuildCategoryPages(dataManager.getCategories(), templates, formWizard);
             showPage(newPageIndex, formWizard, formTitle, prevBtn, nextBtn, themeControlsContainer, jsonStyleContainer, themeSelect);
-            updateUI();
+            updateUI(cardWrapper, dataManager, templates);
         } else if (button.classList.contains('add-skill-btn')) {
             const category = dataManager.getCategories().find(c => c.id === catId);
             if (category) {
                 const newSkill = dataManager.addSkill(catId, '', '', 1);
                 page.querySelector('.skills-in-category-container').appendChild(createSkillFormBlock(newSkill, templates));
-                updateUI();
+                updateUI(cardWrapper, dataManager, templates);
             }
         } else if (button.classList.contains('remove-skill-btn')) {
             const skillBlock = button.closest('.skill-form-block');
             const skillId = parseInt(skillBlock.dataset.skillId);
             dataManager.removeSkill(catId, skillId);
             skillBlock.remove();
-            updateUI();
+            updateUI(cardWrapper, dataManager, templates);
         }
     }
 

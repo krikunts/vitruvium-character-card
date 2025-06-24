@@ -3,6 +3,8 @@
 
 import { dataURLtoUint8Array, uint8ArrayToDataURL, extractChunks, encodeChunks, createTextChunk, extractJsonFromChunks } from './pngMeta.js';
 
+const pngJsonChunkKey = 'VitruviumData';
+
 export function saveDataToJson(data, fileName = 'character-data.json') {
     const jsonData = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonData], { type: 'application/json' });
@@ -28,7 +30,7 @@ export function loadDataFromJson(file, onLoad, onError) {
     reader.readAsText(file);
 }
 
-export function saveCardAsPng(characterCard, data, fileName = 'character-card.png', pngJsonChunkKey = 'VitruviumData') {
+export function saveCardAsPng(characterCard, data, fileName = 'character-card.png') {
     return window.html2canvas(characterCard, { scale: 2, backgroundColor: null, useCORS: true })
         .then(canvas => {
             const jsonData = JSON.stringify(data);
@@ -51,7 +53,7 @@ export function saveCardAsPng(characterCard, data, fileName = 'character-card.pn
         });
 }
 
-export function loadCardFromPng(file, pngJsonChunkKey, onLoad, onError) {
+export function loadCardFromPng(file, onLoad, onError) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
