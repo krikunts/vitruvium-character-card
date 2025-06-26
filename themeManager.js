@@ -20,7 +20,7 @@ export function getCustomStyles() {
     return customStyles;
 }
 
-export async function handleThemeChange(event, characterCard, jsonStyleContainer, themeSelect, jsonInputArea, applyStylesFromJson) {
+export async function handleThemeChange(event, characterCard, jsonStyleContainer, jsonInputArea, applyStylesFromJson) {
     if (!characterCard) return;
     const selectedTheme = event.target.value;
     if (selectedTheme === 'custom') {

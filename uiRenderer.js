@@ -68,13 +68,14 @@ export function renderSkillsOnCard(cardWrapper, categories, templates) {
 
 export function updateUI(cardWrapper, dataManager, templates) {
     updateStaticInfo(cardWrapper, dataManager.mainInfo || {});
-    renderSkillsOnCard(cardWrapper, dataManager.getCategories(), templates);
+    const categories = dataManager.getCategories();
+    renderSkillsOnCard(cardWrapper, categories, templates);
 }
 
-export function populateFormFieldsFromDataManager(dataManager, formWizard) {
+export function populateFormFieldsFromDataManager(dataManager, formWizardElement) {
     // Main Info
     const mainInfo = dataManager.getMainInfo() || {};
-    const mainInfoPage = formWizard.querySelector('.form-page[data-page-type="main"]');
+    const mainInfoPage = formWizardElement.querySelector('.form-page[data-page-type="main"]');
     if (mainInfoPage) {
         const nameInput = mainInfoPage.querySelector('#char-full-name');
         if (nameInput) nameInput.value = mainInfo.name || '';
@@ -88,7 +89,7 @@ export function populateFormFieldsFromDataManager(dataManager, formWizard) {
     // Categories & Skills
     const categories = dataManager.getCategories();
     categories.forEach(category => {
-        const catPage = formWizard.querySelector(`.form-page[data-page-type="category"][data-category-id="${category.id}"]`);
+        const catPage = formWizardElement.querySelector(`.form-page[data-page-type="category"][data-category-id="${category.id}"]`);
         if (catPage) {
             const catNameInput = catPage.querySelector('.category-name-input');
             if (catNameInput) catNameInput.value = category.name;

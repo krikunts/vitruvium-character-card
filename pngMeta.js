@@ -24,28 +24,6 @@ export function uint8ArrayToDataURL(uint8Array, mimeType) {
     return `data:${mimeType};base64,` + btoa(binary);
 }
 
-// Basic CRC32 implementation (simplified for demonstration, a full one is complex)
-// This is a placeholder. A proper CRC32 implementation is crucial for valid PNGs.
-// For a real-world scenario, a pre-built CRC32 library would be used.
-function crc32(buf) {
-    let crc = -1;
-    for (let i = 0; i < buf.length; i++) {
-        crc = (crc >>> 8) ^ crc32Table[(crc ^ buf[i]) & 0xFF];
-    }
-    return crc ^ (-1);
-}
-
-const crc32Table = [];
-(function() {
-    for (let i = 0; i < 256; i++) {
-        let c = i;
-        for (let k = 0; k < 8; k++) {
-            c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
-        }
-        crc32Table[i] = c;
-    }
-})();
-
 // Function to extract chunks (simplified)
 export function extractChunks(buffer) {
     const chunks = [];
@@ -106,7 +84,7 @@ export function encodeChunks(chunks) {
         const crcBuffer = new Uint8Array(4 + chunk.data.length);
         crcBuffer.set(typeBytes, 0);
         crcBuffer.set(chunk.data, 4);
-        const calculatedCrc = crc32(crcBuffer);
+        const calculatedCrc = CRC32.buf(crcBuffer);
 
         outputBuffer[offset++] = (calculatedCrc >>> 24) & 0xFF;
         outputBuffer[offset++] = (calculatedCrc >>> 16) & 0xFF;

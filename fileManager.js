@@ -65,7 +65,7 @@ export function loadCardFromPng(file, onLoad, onError) {
             if (foundData) {
                 onLoad(foundData);
             } else {
-                if (onError) onError(new Error('No character data found in PNG.'));
+                if (onError) onError(console.log('No character data found in PNG.'));
             }
         } catch (error) {
             if (onError) onError(error);
