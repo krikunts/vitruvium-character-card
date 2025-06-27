@@ -29,14 +29,14 @@ class DataManager {
     addCategory(name, skills = []) {
         const newCategory = { id: this.nextCategoryId++, name, skills: [] };
         this.skillCategories.push(newCategory);
-        skills.forEach(skill => {
+        skills.forEach((skill) => {
             this.addSkill(newCategory.id, skill.name, skill.desc, skill.level);
         });
         return newCategory;
     }
 
     addSkill(catId, name, desc, level) {
-        const category = this.skillCategories.find(cat => cat.id === catId);
+        const category = this.skillCategories.find((cat) => cat.id === catId);
         if (category) {
             const newSkill = { id: this.nextSkillId++, name, description: desc, level };
             category.skills.push(newSkill);
@@ -46,13 +46,13 @@ class DataManager {
     }
 
     removeCategory(catId) {
-        this.skillCategories = this.skillCategories.filter(cat => cat.id !== catId);
+        this.skillCategories = this.skillCategories.filter((cat) => cat.id !== catId);
     }
 
     removeSkill(catId, skillId) {
-        const category = this.skillCategories.find(cat => cat.id === catId);
+        const category = this.skillCategories.find((cat) => cat.id === catId);
         if (category) {
-            category.skills = category.skills.filter(s => s.id !== skillId);
+            category.skills = category.skills.filter((s) => s.id !== skillId);
         }
     }
 
@@ -61,7 +61,7 @@ class DataManager {
         if (data.mainInfo) {
             this.mainInfo = {
                 name: data.mainInfo.name || '',
-                attributes: { ...data.mainInfo.attributes }
+                attributes: { ...data.mainInfo.attributes },
             };
         } else {
             this.mainInfo = { name: '', attributes: {} };
@@ -69,14 +69,14 @@ class DataManager {
         if (Array.isArray(data.skillCategories)) {
             let currentMaxCategoryId = -1;
             let currentMaxSkillId = -1;
-            this.skillCategories = data.skillCategories.map(cat => {
+            this.skillCategories = data.skillCategories.map((cat) => {
                 const newCat = { ...cat };
                 if (newCat.id === undefined) {
                     newCat.id = this.nextCategoryId++;
                 }
                 if (newCat.id > currentMaxCategoryId) currentMaxCategoryId = newCat.id;
                 if (Array.isArray(newCat.skills)) {
-                    newCat.skills = newCat.skills.map(skill => {
+                    newCat.skills = newCat.skills.map((skill) => {
                         const newSkill = { ...skill };
                         if (newSkill.id === undefined) {
                             newSkill.id = this.nextSkillId++;
@@ -112,7 +112,7 @@ class DataManager {
     setNextSkillId(id) {
         this.nextSkillId = id;
     }
-    
+
     setCategories(categories) {
         this.skillCategories = categories;
     }

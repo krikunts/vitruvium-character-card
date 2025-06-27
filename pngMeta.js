@@ -2,6 +2,9 @@
 // Handles PNG metadata encoding/decoding for Vitruvium character card
 // (inspired by png-chunks-encode/extract)
 
+// CRC32 is expected to be available globally from crc32.min.js
+// If using a module bundler, you might need to configure it to expose CRC32 globally or import it differently.
+
 // Helper to convert Data URL to Uint8Array
 export function dataURLtoUint8Array(dataURL) {
     const base64 = dataURL.split(',')[1];
@@ -30,17 +33,37 @@ export function extractChunks(buffer) {
     let offset = 8; // Skip PNG signature
 
     while (offset < buffer.length) {
-        const length = (buffer[offset] << 24) |
-                        (buffer[offset + 1] << 16) |
-                        (buffer[offset + 2] << 8) |
-                        buffer[offset + 3];
-        
-        const type = String.fromCharCode(buffer[offset + 4], buffer[offset + 5], buffer[offset + 6], buffer[offset + 7]);
+        const length =
+            (buffer[offset] << 24) |
+            (buffer[offset + 1] << 16) |
+            (buffer[offset + 2] << 8) |
+            buffer[offset + 3];
+
+        const type = String.fromCharCode(
+            buffer[offset + 4],
+            buffer[offset + 5],
+            buffer[offset + 6],
+            buffer[offset + 7],
+        );
         const data = buffer.slice(offset + 8, offset + 8 + length);
-        const crc = (buffer[offset + 8 + length] << 24) |
-                    (buffer[offset + 8 + length + 1] << 16) |
-                    (buffer[offset + 8 + length + 2] << 8) |
-                        buffer[offset + 8 + length + 3];
+        const crc =
+            (buffer[offset + 8 + length] << 24) |
+            (buffer[offset + 8 + length + 1] << 16) |
+            (buffer[offset + 8 + length + 2] << 8) |
+            buffer[offset + 8 + length + 3];
+
+        // Calculate CRC for type + data
+        const crcBuffer = new Uint8Array(4 + data.length);
+        const typeBytes = new TextEncoder().encode(type);
+        crcBuffer.set(typeBytes, 0);
+        crcBuffer.set(data, 4);
+        const calculatedCrc = CRC32.buf(crcBuffer);
+
+        if (crc !== calculatedCrc) {
+            throw new Error(
+                `PNG CRC mismatch for chunk ${type}. Expected ${calculatedCrc}, got ${crc}`,
+            );
+        }
 
         chunks.push({ name: type, data: data, length: length, crc: crc });
         offset += 12 + length; // 4 (length) + 4 (type) + length (data) + 4 (crc)
@@ -52,9 +75,9 @@ export function extractChunks(buffer) {
 // Function to encode chunks (simplified)
 export function encodeChunks(chunks) {
     // PNG signature
-    const signature = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    const signature = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     let totalLength = signature.length;
-    chunks.forEach(chunk => {
+    chunks.forEach((chunk) => {
         totalLength += 12 + chunk.data.length; // length + type + data + crc
     });
 
@@ -64,12 +87,12 @@ export function encodeChunks(chunks) {
     outputBuffer.set(signature, offset);
     offset += signature.length;
 
-    chunks.forEach(chunk => {
+    chunks.forEach((chunk) => {
         // Length
-        outputBuffer[offset++] = (chunk.data.length >>> 24) & 0xFF;
-        outputBuffer[offset++] = (chunk.data.length >>> 16) & 0xFF;
-        outputBuffer[offset++] = (chunk.data.length >>> 8) & 0xFF;
-        outputBuffer[offset++] = (chunk.data.length >>> 0) & 0xFF;
+        outputBuffer[offset++] = (chunk.data.length >>> 24) & 0xff;
+        outputBuffer[offset++] = (chunk.data.length >>> 16) & 0xff;
+        outputBuffer[offset++] = (chunk.data.length >>> 8) & 0xff;
+        outputBuffer[offset++] = (chunk.data.length >>> 0) & 0xff;
 
         // Type
         const typeBytes = new TextEncoder().encode(chunk.name);
@@ -86,10 +109,10 @@ export function encodeChunks(chunks) {
         crcBuffer.set(chunk.data, 4);
         const calculatedCrc = CRC32.buf(crcBuffer);
 
-        outputBuffer[offset++] = (calculatedCrc >>> 24) & 0xFF;
-        outputBuffer[offset++] = (calculatedCrc >>> 16) & 0xFF;
-        outputBuffer[offset++] = (calculatedCrc >>> 8) & 0xFF;
-        outputBuffer[offset++] = (calculatedCrc >>> 0) & 0xFF;
+        outputBuffer[offset++] = (calculatedCrc >>> 24) & 0xff;
+        outputBuffer[offset++] = (calculatedCrc >>> 16) & 0xff;
+        outputBuffer[offset++] = (calculatedCrc >>> 8) & 0xff;
+        outputBuffer[offset++] = (calculatedCrc >>> 0) & 0xff;
     });
 
     return outputBuffer;
@@ -104,7 +127,7 @@ export function createTextChunk(keyword, dataString) {
     return {
         name: 'tEXt',
         data: textBytes,
-        length: textBytes.length
+        length: textBytes.length,
     };
 }
 

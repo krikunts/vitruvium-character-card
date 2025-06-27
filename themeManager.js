@@ -4,6 +4,12 @@
 let theme = '/themes/dark.json';
 let customStyles = {};
 
+let _notify = null;
+
+export function setNotifier(notifier) {
+    _notify = notifier;
+}
+
 export function setTheme(newTheme) {
     theme = newTheme;
 }
@@ -20,7 +26,13 @@ export function getCustomStyles() {
     return customStyles;
 }
 
-export async function handleThemeChange(event, characterCard, jsonStyleContainer, jsonInputArea, applyStylesFromJson) {
+export async function handleThemeChange(
+    event,
+    characterCard,
+    jsonStyleContainer,
+    jsonInputArea,
+    applyStylesFromJson,
+) {
     if (!characterCard) return;
     const selectedTheme = event.target.value;
     if (selectedTheme === 'custom') {
@@ -46,7 +58,8 @@ export function applyCustomStylesFromJson(jsonInputArea, characterCard, applySty
         applyStylesFromJson(styles, characterCard);
         setCustomStyles(styles);
     } catch (error) {
-        console.error("Error parsing or applying custom styles JSON:", error);
+        if (_notify) _notify('error', 'Error parsing or applying custom styles JSON.');
+        console.error('Error parsing or applying custom styles JSON:', error);
     }
 }
 
