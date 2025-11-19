@@ -34,8 +34,8 @@
             <div class="form-group" id="theme-selector">
                 <label for="style-theme">Тема:</label>
                 <select id="style-theme" v-model="selectedTheme" @change="handleThemeChange">
-                    <option value="/themes/dark.json">Черная</option>
-                    <option value="/themes/light.json">Белая</option>
+                    <option value="themes/dark.json">Черная</option>
+                    <option value="themes/light.json">Белая</option>
                     <option value="custom">Пользовательская</option>
                 </select>
                 <div
