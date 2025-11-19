@@ -1,12 +1,19 @@
-// pngMeta.js
-// Handles PNG metadata encoding/decoding for Vitruvium character card
-// (inspired by png-chunks-encode/extract)
+import CRC32 from 'crc-32';
 
-// CRC32 is expected to be available globally from crc32.min.js
-// If using a module bundler, you might need to configure it to expose CRC32 globally or import it differently.
+export interface Chunk {
+    name: string;
+    data: Uint8Array;
+    length: number;
+    crc: number;
+}
 
-// Helper to convert Data URL to Uint8Array
-export function dataURLtoUint8Array(dataURL) {
+export interface TextChunk {
+    name: string;
+    data: Uint8Array;
+    length: number;
+}
+
+export function dataURLtoUint8Array(dataURL: string): Uint8Array {
     const base64 = dataURL.split(',')[1];
     const binaryString = atob(base64);
     const len = binaryString.length;
@@ -17,8 +24,7 @@ export function dataURLtoUint8Array(dataURL) {
     return bytes;
 }
 
-// Helper to convert Uint8Array to Data URL
-export function uint8ArrayToDataURL(uint8Array, mimeType) {
+export function uint8ArrayToDataURL(uint8Array: Uint8Array, mimeType: string): string {
     let binary = '';
     const len = uint8Array.byteLength;
     for (let i = 0; i < len; i++) {
@@ -27,9 +33,8 @@ export function uint8ArrayToDataURL(uint8Array, mimeType) {
     return `data:${mimeType};base64,` + btoa(binary);
 }
 
-// Function to extract chunks (simplified)
-export function extractChunks(buffer) {
-    const chunks = [];
+export function extractChunks(buffer: Uint8Array): Chunk[] {
+    const chunks: Chunk[] = [];
     let offset = 8; // Skip PNG signature
 
     while (offset < buffer.length) {
@@ -52,7 +57,6 @@ export function extractChunks(buffer) {
             (buffer[offset + 8 + length + 2] << 8) |
             buffer[offset + 8 + length + 3];
 
-        // Calculate CRC for type + data
         const crcBuffer = new Uint8Array(4 + data.length);
         const typeBytes = new TextEncoder().encode(type);
         crcBuffer.set(typeBytes, 0);
@@ -60,25 +64,23 @@ export function extractChunks(buffer) {
         const calculatedCrc = CRC32.buf(crcBuffer);
 
         if (crc !== calculatedCrc) {
-            throw new Error(
+            console.warn(
                 `PNG CRC mismatch for chunk ${type}. Expected ${calculatedCrc}, got ${crc}`,
             );
         }
 
         chunks.push({ name: type, data: data, length: length, crc: crc });
-        offset += 12 + length; // 4 (length) + 4 (type) + length (data) + 4 (crc)
-        if (type === 'IEND') break; // End of image
+        offset += 12 + length;
+        if (type === 'IEND') break;
     }
     return chunks;
 }
 
-// Function to encode chunks (simplified)
-export function encodeChunks(chunks) {
-    // PNG signature
+export function encodeChunks(chunks: Chunk[]): Uint8Array {
     const signature = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     let totalLength = signature.length;
     chunks.forEach((chunk) => {
-        totalLength += 12 + chunk.data.length; // length + type + data + crc
+        totalLength += 12 + chunk.data.length;
     });
 
     const outputBuffer = new Uint8Array(totalLength);
@@ -88,22 +90,18 @@ export function encodeChunks(chunks) {
     offset += signature.length;
 
     chunks.forEach((chunk) => {
-        // Length
         outputBuffer[offset++] = (chunk.data.length >>> 24) & 0xff;
         outputBuffer[offset++] = (chunk.data.length >>> 16) & 0xff;
         outputBuffer[offset++] = (chunk.data.length >>> 8) & 0xff;
         outputBuffer[offset++] = (chunk.data.length >>> 0) & 0xff;
 
-        // Type
         const typeBytes = new TextEncoder().encode(chunk.name);
         outputBuffer.set(typeBytes, offset);
         offset += 4;
 
-        // Data
         outputBuffer.set(chunk.data, offset);
         offset += chunk.data.length;
 
-        // CRC (calculate for type + data)
         const crcBuffer = new Uint8Array(4 + chunk.data.length);
         crcBuffer.set(typeBytes, 0);
         crcBuffer.set(chunk.data, 4);
@@ -118,10 +116,7 @@ export function encodeChunks(chunks) {
     return outputBuffer;
 }
 
-/**
- * Creates a tEXt chunk with the given keyword and string data.
- */
-export function createTextChunk(keyword, dataString) {
+export function createTextChunk(keyword: string, dataString: string): TextChunk {
     const textData = keyword + '\0' + dataString;
     const textBytes = new TextEncoder().encode(textData);
     return {
@@ -131,11 +126,7 @@ export function createTextChunk(keyword, dataString) {
     };
 }
 
-/**
- * Extracts and parses JSON data from a tEXt chunk with the given keyword, if present.
- * Returns the parsed object or null if not found.
- */
-export function extractJsonFromChunks(chunks, keyword) {
+export function extractJsonFromChunks(chunks: Chunk[], keyword: string): any | null {
     for (const chunk of chunks) {
         if (chunk.name === 'tEXt') {
             const textDecoder = new TextDecoder();
@@ -148,6 +139,7 @@ export function extractJsonFromChunks(chunks, keyword) {
                     try {
                         return JSON.parse(jsonDataString);
                     } catch (e) {
+                        console.error('Failed to parse JSON from tEXt chunk:', e);
                         return null;
                     }
                 }

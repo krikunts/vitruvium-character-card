@@ -5,22 +5,24 @@ body {
   background-color: #1c1c1c;
   color: #e0e0e0;
   display: flex;
-  justify-content: center;
-  padding: 20px;
   box-sizing: border-box;
 }
 
 .page-container {
   display: flex;
+  flex-wrap: wrap;
   gap: 30px;
   width: 100%;
   max-width: 1700px;
   align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
 }
 
 .form-container {
-  width: 600px;
-  flex-shrink: 0;
+  flex-basis: 400px;
+  flex-grow: 1;
+  max-width: 100%;
   background-color: #2a2a2a;
   padding: 20px 30px;
   border-radius: 8px;
@@ -277,7 +279,9 @@ button.add-skill-btn:hover {
 
 /* --- СТИЛИ КАРТОЧКИ ПЕРСОНАЖА --- */
 .card-preview-container {
+  flex-basis: 600px;
   flex-grow: 1;
+  max-width: 100%;
   /* Base CSS variables for customization */
   --bg-color-primary: #1a1a1a;
   --bg-color-secondary: #2c2c2e;
@@ -294,9 +298,8 @@ button.add-skill-btn:hover {
 }
 
 .character-card {
-  width: 950px;
+  width: 100%;
   height: auto;
-  min-height: 600px;
   background-color: #000;
   display: flex;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -539,4 +542,17 @@ button.add-skill-btn:hover {
 
 .form-footer a:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 1024px) {
+  .page-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .form-container,
+  .card-preview-container {
+    flex-basis: auto;
+    width: 100%;
+  }
 }
