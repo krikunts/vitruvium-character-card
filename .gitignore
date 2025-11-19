@@ -2,9 +2,8 @@
 .firebase
 .firebaserc
 firebase.json
-.vscode
+.vscode/*
 node_modules
-package-lock.json
 
 # Logs
 *.log
@@ -19,4 +18,4 @@ node_modules
 
 test-results/
 playwright-report/
-dist/
+dist/*
