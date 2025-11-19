@@ -1,0 +1,14 @@
+{
+  "bgColorPrimary": "#1a1a1a",
+  "bgColorSecondary": "#2c2c2e",
+  "textColorName": "#e0e0e0",
+  "iconColorHeader": "#ffffff",
+  "iconColorAttributes": "#ffffff",
+  "textColorAttributes": "#a0a0a0",
+  "textColorCategory": "#ffffff",
+  "textColorSkillName": "#c0c0c0",
+  "textColorSkillDescription": "#a0a0a0",
+  "dotsColor": "#ffffff",
+  "delimiterColor": "#444444",
+  "fontFamily": "'Roboto Condensed', sans-serif"
+}
